@@ -27,8 +27,8 @@
       --blue: #60a5fa;
       --blue-dim: rgba(96,165,250,0.12);
       --text: #e0e0e0;
-      --text-muted: #666;
-      --text-dim: #999;
+      --text-muted: #999;
+      --text-dim: #c0c0c0;
       --radius: 10px;
       --mono: 'JetBrains Mono', monospace;
       --sans: 'Syne', sans-serif;
@@ -107,7 +107,7 @@
       display: flex; align-items: center; gap: 7px;
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--text-muted);
+      color: #aaa;
     }
     .status-dot::before {
       content: '';
@@ -146,14 +146,14 @@
     .section-label {
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--text-muted);
+      color: #999;
       letter-spacing: 1.5px;
       text-transform: uppercase;
     }
     .section-count {
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--text-muted);
+      color: #999;
     }
 
     /* ── Grid ── */
@@ -259,7 +259,7 @@
     }
     .card-desc {
       font-size: 12px;
-      color: var(--text-muted);
+      color: #aaa;
       line-height: 1.6;
       font-family: var(--mono);
       font-weight: 400;
@@ -282,18 +282,18 @@
     .meta-label {
       font-family: var(--mono);
       font-size: 10px;
-      color: var(--text-muted);
+      color: #888;
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
     .meta-value {
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--text-dim);
+      color: #d0d0d0;
       text-align: right;
     }
     .meta-value a {
-      color: var(--text-dim);
+      color: #c0c0c0;
       text-decoration: none;
     }
     .meta-value a:hover { color: var(--gold); text-decoration: underline; }
