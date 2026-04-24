@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BC Ops Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #080808;
+      --surface: #0f0f0f;
+      --card: #111111;
+      --border: #1c1c1c;
+      --border-hover: #2a2a2a;
+      --gold: #D4A843;
+      --gold-dim: rgba(212,168,67,0.15);
+      --gold-glow: rgba(212,168,67,0.25);
+      --green: #4ade80;
+      --green-dim: rgba(74,222,128,0.12);
+      --red: #f87171;
+      --red-dim: rgba(248,113,113,0.12);
+      --yellow: #fbbf24;
+      --yellow-dim: rgba(251,191,36,0.12);
+      --blue: #60a5fa;
+      --blue-dim: rgba(96,165,250,0.12);
+      --text: #e0e0e0;
+      --text-muted: #666;
+      --text-dim: #999;
+      --radius: 10px;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Dot grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, #1e1e1e 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Radial vignette */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, transparent 40%, #080808 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 24px 60px; }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 0 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 36px;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 16px; }
+
+    .logo-mark {
+      width: 44px; height: 44px;
+      background: var(--gold);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      font-weight: 800;
+      color: #000;
+      font-family: var(--sans);
+      letter-spacing: -1px;
+      flex-shrink: 0;
+    }
+
+    .header-title { line-height: 1; }
+    .header-title h1 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+    .header-title p {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      letter-spacing: 0.5px;
+    }
+
+    .header-right { display: flex; align-items: center; gap: 16px; }
+
+    .status-dot {
+      display: flex; align-items: center; gap: 7px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .status-dot::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse-dot 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .refresh-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.3px;
+    }
+    .refresh-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .refresh-btn.spinning { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Section header ── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .section-count {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 960px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+      animation: fadeUp 0.4s ease both;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--card-accent, var(--border));
+      transition: background 0.3s;
+    }
+    .card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card:hover::before { background: var(--gold); }
+
+    .card.status-success::before { background: var(--green); }
+    .card.status-failure::before { background: var(--red); }
+    .card.status-running::before { background: var(--yellow); animation: glow-yellow 1.5s ease-in-out infinite alternate; }
+    @keyframes glow-yellow {
+      from { box-shadow: 0 0 4px var(--yellow); }
+      to   { box-shadow: 0 0 12px var(--yellow); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .card:nth-child(1) { animation-delay: 0.05s }
+    .card:nth-child(2) { animation-delay: 0.10s }
+    .card:nth-child(3) { animation-delay: 0.15s }
+    .card:nth-child(4) { animation-delay: 0.20s }
+    .card:nth-child(5) { animation-delay: 0.25s }
+    .card:nth-child(6) { animation-delay: 0.30s }
+    .card:nth-child(7) { animation-delay: 0.35s }
+    .card:nth-child(8) { animation-delay: 0.40s }
+
+    /* Card top */
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .card-icon {
+      width: 36px; height: 36px;
+      background: #181818;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      font-family: var(--mono);
+      color: var(--gold);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .card-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+
+    /* Badges */
+    .badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+      letter-spacing: 0.3px;
+    }
+    .badge-cron    { background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(212,168,67,0.2); }
+    .badge-manual  { background: #181818; color: var(--text-muted); border: 1px solid var(--border); }
+    .badge-ok      { background: var(--green-dim); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+    .badge-fail    { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+    .badge-running { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(251,191,36,0.2); }
+    .badge-none    { background: #181818; color: var(--text-muted); border: 1px solid var(--border); }
+    .badge-cancelled { background: #181818; color: var(--text-muted); border: 1px solid var(--border); }
+
+    /* Card body */
+    .card-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+      letter-spacing: -0.2px;
+    }
+    .card-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      font-family: var(--mono);
+      font-weight: 400;
+    }
+
+    /* Card meta */
+    .card-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .meta-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .meta-value {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: right;
+    }
+    .meta-value a {
+      color: var(--text-dim);
+      text-decoration: none;
+    }
+    .meta-value a:hover { color: var(--gold); text-decoration: underline; }
+
+    /* Card footer */
+    .card-footer { display: flex; gap: 8px; }
+
+    .btn-trigger {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 9px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.3px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-trigger:hover {
+      background: var(--gold);
+      color: #000;
+    }
+    .btn-trigger:active { transform: scale(0.98); }
+    .btn-trigger:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .btn-trigger.loading {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+    .btn-trigger .spinner {
+      width: 11px; height: 11px;
+      border: 1.5px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .btn-logs {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 9px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: flex; align-items: center;
+    }
+    .btn-logs:hover { border-color: var(--border-hover); color: var(--text); }
+
+    /* ── Skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, #111 25%, #181818 50%, #111 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 4px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .card-skeleton .card-name { height: 16px; width: 70%; }
+    .card-skeleton .card-desc { height: 11px; width: 90%; margin-top: 8px; }
+    .card-skeleton .card-desc + .card-desc { width: 65%; margin-top: 4px; }
+    .card-skeleton .btn-trigger { height: 36px; border: none; background: #181818; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: #111;
+      border: 1px solid var(--border-hover);
+      border-radius: 14px;
+      width: 100%; max-width: 420px;
+      padding: 28px;
+      transform: translateY(16px) scale(0.97);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+
+    .modal-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .modal-icon {
+      width: 40px; height: 40px;
+      background: var(--gold-dim);
+      border: 1px solid rgba(212,168,67,0.2);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono);
+      font-size: 16px;
+      color: var(--gold);
+    }
+    .modal-close {
+      background: transparent; border: none;
+      color: var(--text-muted); cursor: pointer;
+      font-size: 18px; padding: 4px;
+      transition: color 0.2s; line-height: 1;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    .modal h2 {
+      font-size: 16px; font-weight: 700; color: #fff;
+      margin-bottom: 4px; letter-spacing: -0.3px;
+    }
+    .modal p {
+      font-family: var(--mono);
+      font-size: 11px; color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .form-group { margin-top: 20px; }
+    .form-group label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .form-group input[type="date"] {
+      width: 100%;
+      background: #0a0a0a;
+      border: 1px solid var(--border-hover);
+      border-radius: 7px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+      color-scheme: dark;
+    }
+    .form-group input[type="date"]:focus { border-color: var(--gold); }
+    .form-hint {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .modal-actions {
+      display: flex; gap: 10px; margin-top: 24px;
+    }
+    .btn-cancel {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--border-hover);
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 11px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-cancel:hover { border-color: var(--text-muted); color: var(--text); }
+    .btn-confirm {
+      flex: 2;
+      background: var(--gold);
+      border: none;
+      color: #000;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 11px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      letter-spacing: 0.3px;
+    }
+    .btn-confirm:hover { background: #e6b84a; }
+    .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-confirm .spinner {
+      width: 13px; height: 13px;
+      border: 2px solid #000;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* ── Toast ── */
+    #toast-container {
+      position: fixed;
+      bottom: 28px; right: 28px;
+      display: flex; flex-direction: column; gap: 10px;
+      z-index: 200;
+    }
+    .toast {
+      background: #1a1a1a;
+      border: 1px solid var(--border-hover);
+      border-left: 3px solid var(--green);
+      border-radius: 8px;
+      padding: 12px 16px;
+      min-width: 280px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .toast.error { border-left-color: var(--red); }
+    .toast strong { display: block; margin-bottom: 2px; color: #fff; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(20px); }
+    }
+
+    /* ── Error state ── */
+    .error-state {
+      text-align: center;
+      padding: 60px 20px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .error-state p { margin-top: 8px; font-size: 11px; color: var(--red); }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <header>
+    <div class="header-left">
+      <div class="logo-mark">BC</div>
+      <div class="header-title">
+        <h1>OPS HUB</h1>
+        <p>GITHUB ACTIONS · bc-automations</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-dot" id="status-text">CONECTADO</div>
+      <button class="refresh-btn" onclick="loadWorkflows()" id="refresh-btn">↻ REFRESH</button>
+    </div>
+  </header>
+
+  <div class="section-header">
+    <span class="section-label">WORKFLOWS</span>
+    <span class="section-count" id="wf-count">cargando...</span>
+  </div>
+
+  <div class="grid" id="grid">
+    <!-- Skeletons mientras carga -->
+    <div class="card card-skeleton">
+      <div class="card-top"><div class="skeleton" style="width:36px;height:36px;border-radius:8px"></div></div>
+      <div class="card-name skeleton"></div>
+      <div class="card-desc skeleton"></div>
+      <div class="card-desc skeleton"></div>
+      <div class="card-footer"><div class="btn-trigger skeleton"></div></div>
+    </div>
+    <div class="card card-skeleton">
+      <div class="card-top"><div class="skeleton" style="width:36px;height:36px;border-radius:8px"></div></div>
+      <div class="card-name skeleton"></div>
+      <div class="card-desc skeleton"></div>
+      <div class="card-desc skeleton"></div>
+      <div class="card-footer"><div class="btn-trigger skeleton"></div></div>
+    </div>
+    <div class="card card-skeleton">
+      <div class="card-top"><div class="skeleton" style="width:36px;height:36px;border-radius:8px"></div></div>
+      <div class="card-name skeleton"></div>
+      <div class="card-desc skeleton"></div>
+      <div class="card-desc skeleton"></div>
+      <div class="card-footer"><div class="btn-trigger skeleton"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal trigger -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-icon" id="modal-icon">▶</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <h2 id="modal-title">Ejecutar workflow</h2>
+    <p id="modal-desc">Dispara el workflow manualmente.</p>
+
+    <div class="form-group" id="date-group">
+      <label>Fecha (opcional)</label>
+      <input type="date" id="date-input" />
+      <div class="form-hint">Vacío = ayer (comportamiento por defecto)</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-confirm" id="btn-confirm" onclick="confirmTrigger()">
+        <span id="confirm-text">▶ EJECUTAR</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+  // ── Metadata de workflows ──────────────────────────────────────────
+  const WORKFLOW_META = {
+    'Briefing Diario BlackChicken': {
+      icon: '◉',
+      desc: 'Ventas, canales, productos top, checklists y alertas del día anterior',
+      schedule: 'Diario · 03:00',
+      cron: true,
+      hasDateInput: true,
+    },
+    'CheckRocket Diario BlackChicken': {
+      icon: '✓',
+      desc: 'Checklists BC1 y BC2: cumplimiento, temperaturas, merma y no-cumple',
+      schedule: 'Diario · 04:00',
+      cron: true,
+      hasDateInput: true,
+    },
+    'Cuadratura Diaria BlackChicken': {
+      icon: '⊞',
+      desc: 'Cruza ventas Justo vs compras Ruka — genera Excel + reporte HTML',
+      schedule: 'Diario · 09:00',
+      cron: true,
+      hasDateInput: true,
+    },
+    'Reporte Semanal BlackChicken': {
+      icon: '≡',
+      desc: 'Resumen semanal de ventas, productos, operaciones y KPIs',
+      schedule: 'Lunes · 09:00',
+      cron: true,
+      hasDateInput: false,
+    },
+    'Ventas Semanales BlackChicken': {
+      icon: '▲',
+      desc: 'Infografías semanales de ventas por producto y local + WhatsApp',
+      schedule: 'Solo manual',
+      cron: false,
+      hasDateInput: false,
+    },
+    'Reporte Mensual BlackChicken': {
+      icon: '◈',
+      desc: 'Reporte ejecutivo mensual con gráficos históricos BC1 y BC2',
+      schedule: 'Solo manual',
+      cron: false,
+      hasDateInput: false,
+    },
+    'Validación Cruzada Semanal BlackChicken': {
+      icon: '⊗',
+      desc: 'Valida coherencia entre ventas registradas y compras del período',
+      schedule: 'Solo manual',
+      cron: false,
+      hasDateInput: false,
+    },
+    'Alertas Diarias BlackChicken': {
+      icon: '⚡',
+      desc: 'Alertas automáticas cuando métricas operacionales salen de rango',
+      schedule: 'Solo manual',
+      cron: false,
+      hasDateInput: true,
+    },
+  };
+
+  // ── State ──────────────────────────────────────────────────────────
+  let activeWorkflowId = null;
+  let activeHasDateInput = false;
+
+  // ── Load workflows ─────────────────────────────────────────────────
+  async function loadWorkflows() {
+    const refreshBtn = document.getElementById('refresh-btn');
+    refreshBtn.classList.add('spinning');
+
+    try {
+      const resp = await fetch('/api/workflows');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const workflows = await resp.json();
+      renderWorkflows(workflows);
+      document.getElementById('status-text').textContent = 'CONECTADO';
+      document.getElementById('wf-count').textContent = `${workflows.length} workflows`;
+    } catch (err) {
+      console.error(err);
+      document.getElementById('status-text').textContent = 'ERROR';
+      document.getElementById('grid').innerHTML = `
+        <div class="error-state" style="grid-column:1/-1">
+          No se pudo conectar con GitHub Actions
+          <p>${err.message}</p>
+        </div>`;
+    } finally {
+      refreshBtn.classList.remove('spinning');
+    }
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────
+  function renderWorkflows(workflows) {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+
+    workflows.forEach(wf => {
+      const meta = WORKFLOW_META[wf.name] || {
+        icon: '◎',
+        desc: wf.path.replace('.github/workflows/', ''),
+        schedule: wf.state === 'active' ? 'Activo' : 'Inactivo',
+        cron: false,
+        hasDateInput: true,
+      };
+
+      const { statusClass, conclusionBadge } = getStatus(wf);
+      const lastRunHtml = getLastRunHtml(wf);
+
+      const card = document.createElement('div');
+      card.className = `card ${statusClass}`;
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="card-icon">${meta.icon}</div>
+          <div class="card-badges">
+            ${conclusionBadge}
+            <span class="badge ${meta.cron ? 'badge-cron' : 'badge-manual'}">
+              ${meta.cron ? '⏱ ' + meta.schedule : meta.schedule}
+            </span>
+          </div>
+        </div>
+        <div>
+          <div class="card-name">${cleanName(wf.name)}</div>
+          <div class="card-desc" style="margin-top:6px">${meta.desc}</div>
+        </div>
+        <div class="card-meta">
+          ${lastRunHtml}
+        </div>
+        <div class="card-footer">
+          <button class="btn-trigger" onclick="openModal(${wf.id}, '${escHtml(wf.name)}', '${escHtml(meta.desc)}', '${meta.icon}', ${meta.hasDateInput})">
+            ▶ Ejecutar
+          </button>
+          ${wf.lastRun?.url ? `<a class="btn-logs" href="${wf.lastRun.url}" target="_blank" title="Ver logs">↗</a>` : ''}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function cleanName(name) {
+    return name.replace(' BlackChicken', '');
+  }
+
+  function escHtml(str) {
+    return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
+
+  function getStatus(wf) {
+    if (!wf.lastRun) {
+      return { statusClass: '', conclusionBadge: '<span class="badge badge-none">Sin runs</span>' };
+    }
+    const { status, conclusion } = wf.lastRun;
+    if (status === 'in_progress' || status === 'queued') {
+      return { statusClass: 'status-running', conclusionBadge: '<span class="badge badge-running">● En ejecución</span>' };
+    }
+    if (conclusion === 'success') {
+      return { statusClass: 'status-success', conclusionBadge: '<span class="badge badge-ok">✓ Exitoso</span>' };
+    }
+    if (conclusion === 'failure') {
+      return { statusClass: 'status-failure', conclusionBadge: '<span class="badge badge-fail">✕ Fallido</span>' };
+    }
+    if (conclusion === 'cancelled') {
+      return { statusClass: '', conclusionBadge: '<span class="badge badge-cancelled">⊘ Cancelado</span>' };
+    }
+    return { statusClass: '', conclusionBadge: '<span class="badge badge-none">—</span>' };
+  }
+
+  function getLastRunHtml(wf) {
+    if (!wf.lastRun) return '<div class="meta-row"><span class="meta-label">Último run</span><span class="meta-value">Nunca</span></div>';
+
+    const { createdAt, duration, event } = wf.lastRun;
+    const timeAgo = formatAgo(createdAt);
+    const dur = duration ? `${Math.floor(duration / 60)}m ${duration % 60}s` : '—';
+    const eventLabel = event === 'schedule' ? '⏱ Auto' : event === 'workflow_dispatch' ? '▶ Manual' : event;
+
+    return `
+      <div class="meta-row">
+        <span class="meta-label">Último run</span>
+        <span class="meta-value">${timeAgo}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Duración</span>
+        <span class="meta-value">${dur}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Trigger</span>
+        <span class="meta-value">${eventLabel}</span>
+      </div>
+    `;
+  }
+
+  function formatAgo(isoStr) {
+    const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
+    if (diff < 60) return 'hace ' + diff + 's';
+    if (diff < 3600) return 'hace ' + Math.floor(diff / 60) + 'm';
+    if (diff < 86400) return 'hace ' + Math.floor(diff / 3600) + 'h';
+    return 'hace ' + Math.floor(diff / 86400) + 'd';
+  }
+
+  // ── Modal ──────────────────────────────────────────────────────────
+  function openModal(id, name, desc, icon, hasDateInput) {
+    activeWorkflowId = id;
+    activeHasDateInput = hasDateInput;
+
+    document.getElementById('modal-icon').textContent = icon;
+    document.getElementById('modal-title').textContent = cleanName(name);
+    document.getElementById('modal-desc').textContent = desc;
+
+    const dateGroup = document.getElementById('date-group');
+    dateGroup.style.display = hasDateInput ? 'block' : 'none';
+    document.getElementById('date-input').value = '';
+
+    document.getElementById('btn-confirm').disabled = false;
+    document.getElementById('confirm-text').textContent = '▶ EJECUTAR';
+
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+    activeWorkflowId = null;
+  }
+
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // ── Trigger ────────────────────────────────────────────────────────
+  async function confirmTrigger() {
+    if (!activeWorkflowId) return;
+
+    const btn = document.getElementById('btn-confirm');
+    const confirmText = document.getElementById('confirm-text');
+    const dateInput = document.getElementById('date-input');
+
+    btn.disabled = true;
+    confirmText.innerHTML = '<span class="spinner"></span> EJECUTANDO...';
+
+    const body = { workflowId: activeWorkflowId };
+    if (activeHasDateInput && dateInput.value) {
+      body.date = dateInput.value;
+    }
+
+    try {
+      const resp = await fetch('/api/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        showToast('Workflow ejecutado', 'Se disparó correctamente. Puede tardar unos segundos en aparecer en GitHub Actions.', false);
+        closeModal();
+        setTimeout(loadWorkflows, 4000);
+      } else {
+        throw new Error(data.error || 'Error desconocido');
+      }
+    } catch (err) {
+      showToast('Error al ejecutar', err.message, true);
+      btn.disabled = false;
+      confirmText.textContent = '▶ EJECUTAR';
+    }
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────────
+  function showToast(title, msg, isError = false) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast' + (isError ? ' error' : '');
+    toast.innerHTML = `<strong>${title}</strong>${msg}`;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }, 4500);
+  }
+
+  // ── Auto-refresh ───────────────────────────────────────────────────
+  loadWorkflows();
+  setInterval(loadWorkflows, 45000);
+</script>
+</body>
+</html>
