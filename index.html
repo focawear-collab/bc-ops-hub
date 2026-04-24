@@ -789,7 +789,19 @@
     const { createdAt, duration, event } = wf.lastRun;
     const timeAgo = formatAgo(createdAt);
     const dur = duration ? `${Math.floor(duration / 60)}m ${duration % 60}s` : '—';
-    const eventLabel = event === 'schedule' ? '⏱ Auto' : event === 'workflow_dispatch' ? '▶ Manual' : event;
+    let eventLabel;
+    if (event === 'schedule') {
+      const d = new Date(createdAt);
+      const dd = String(d.getDate()).padStart(2,'0');
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const hh = String(d.getHours()).padStart(2,'0');
+      const min = String(d.getMinutes()).padStart(2,'0');
+      eventLabel = `⏱ Auto · ${dd}/${mm} ${hh}:${min}`;
+    } else if (event === 'workflow_dispatch') {
+      eventLabel = '▶ Manual';
+    } else {
+      eventLabel = event;
+    }
 
     return `
       <div class="meta-row">
