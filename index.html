@@ -625,6 +625,7 @@
       icon: '◉',
       desc: 'Ventas, canales, productos top, checklists y alertas del día anterior',
       schedule: 'Diario · 03:00',
+      frequency: 'Diario',
       cron: true,
       hasDateInput: true,
     },
@@ -632,6 +633,7 @@
       icon: '✓',
       desc: 'Checklists BC1 y BC2: cumplimiento, temperaturas, merma y no-cumple',
       schedule: 'Diario · 04:00',
+      frequency: 'Diario',
       cron: true,
       hasDateInput: true,
     },
@@ -639,6 +641,7 @@
       icon: '⊞',
       desc: 'Cruza ventas Justo vs compras Ruka — genera Excel + reporte HTML',
       schedule: 'Diario · 09:00',
+      frequency: 'Diario',
       cron: true,
       hasDateInput: true,
     },
@@ -646,6 +649,7 @@
       icon: '≡',
       desc: 'Resumen semanal de ventas, productos, operaciones y KPIs',
       schedule: 'Lunes · 09:00',
+      frequency: 'Semanal',
       cron: true,
       hasDateInput: false,
     },
@@ -723,7 +727,7 @@
       };
 
       const { statusClass, conclusionBadge } = getStatus(wf);
-      const lastRunHtml = getLastRunHtml(wf);
+      const lastRunHtml = getLastRunHtml(wf, meta);
 
       const card = document.createElement('div');
       card.className = `card ${statusClass}`;
@@ -783,7 +787,7 @@
     return { statusClass: '', conclusionBadge: '<span class="badge badge-none">—</span>' };
   }
 
-  function getLastRunHtml(wf) {
+  function getLastRunHtml(wf, wfMeta) {
     if (!wf.lastRun) return '<div class="meta-row"><span class="meta-label">Último run</span><span class="meta-value">Nunca</span></div>';
 
     const { createdAt, duration, event } = wf.lastRun;
@@ -796,7 +800,8 @@
       const mm = String(d.getMonth()+1).padStart(2,'0');
       const hh = String(d.getHours()).padStart(2,'0');
       const min = String(d.getMinutes()).padStart(2,'0');
-      eventLabel = `⏱ Auto · ${dd}/${mm} ${hh}:${min}`;
+      const freq = wfMeta && wfMeta.frequency ? wfMeta.frequency : 'Auto';
+      eventLabel = `⏱ ${freq} · ${dd}/${mm} ${hh}:${min}`;
     } else if (event === 'workflow_dispatch') {
       eventLabel = '▶ Manual';
     } else {
