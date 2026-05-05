@@ -1344,11 +1344,16 @@
               ${vals.map((v, i) => {
                 const x = pad + i * step;
                 const y = h - pad - ((v - minV) / (maxV - minV || 1)) * (h - pad * 2);
-                return `<circle cx="${x}" cy="${y}" r="3" fill="var(--gold)" stroke="var(--bg)" stroke-width="1.5"/>`;
+                return `<circle cx="${x}" cy="${y}" r="4" fill="var(--gold)" stroke="var(--bg)" stroke-width="1.5"><title>$${$(v)}</title></circle>`;
               }).join('')}
             </svg>
             <div class="spark-labels">
-              ${tr.map(t => `<span class="spark-label">${(t.fecha || '').split(' ').pop() || ''}</span>`).join('')}
+              ${tr.map(t => {
+                const f = t.fecha || '';
+                const m = f.match(/(\d{1,2})\s+de\s+(\w+)/);
+                const lbl = m ? m[1] + ' ' + m[2].substring(0,3) : f.split(' ').pop() || '';
+                return `<span class="spark-label">${lbl}</span>`;
+              }).join('')}
             </div>
           </div>
         </div>`;
@@ -1758,7 +1763,7 @@
 
         if (w.weekly_channels?.length) {
           html += `<div class="kpi-card">
-            <div class="kpi-label">Canales — Semana</div>
+            <div class="kpi-label">Canales — Semana <span style="font-size:10px;color:#555;font-weight:400">(solo presencial)</span></div>
             <table class="kpi-table">
               <thead><tr><th>Canal</th><th>Ventas</th><th>%</th><th>Anterior</th><th>Δ</th></tr></thead>
               <tbody>`;
