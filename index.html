@@ -919,7 +919,7 @@
       color: var(--text-muted);
     }
 
-    /* ── CheckRocket Cards ── */
+    /* ── CheckRocket Cards v2 ── */
     .cr-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -938,6 +938,53 @@
       font-weight: 400;
       color: var(--text-muted);
     }
+    .cr-cat-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin: 12px 0 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cr-checklist-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .cr-checklist-row .cr-name { flex: 1; }
+    .cr-badge-ok {
+      background: #14532d;
+      color: #4ade80;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .cr-badge-fail {
+      background: #450a0a;
+      color: #f87171;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .cr-badge-warn {
+      background: #451a03;
+      color: #fb923c;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
     .cr-detail-row {
       display: flex;
       justify-content: space-between;
@@ -953,6 +1000,30 @@
       border-radius: 50%;
       display: inline-block;
       margin-right: 6px;
+    }
+    .cr-alert-box {
+      background: #1a0808;
+      border: 1px solid #5a1a1a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 8px;
+      font-size: 11px;
+    }
+    .cr-merma-box {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 8px;
+    }
+    .cr-merma-prod {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .cr-merma-detail {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
     }
 
     /* ── Garzones table ── */
@@ -1320,7 +1391,7 @@
       html += `<div class="no-data">Sin datos de briefing disponibles</div>`;
     }
 
-    // ── Section 4: CheckRocket ──
+    // ── Section 4: CheckRocket (v2 — por checklist) ──
     if (cr && (cr.bc1 || cr.bc2)) {
       html += `
       <div class="dash-section">
@@ -1331,23 +1402,93 @@
         const c = cr[loc];
         if (!c) return;
         const label = idx === 0 ? 'BC1 — El Plomo 5931' : 'BC2 — El Plomo 5630';
-        const scoreColor = (c.completed && c.total && c.completed >= c.total) ? 'var(--green)' :
-                           (c.completed && c.total && c.completed >= c.total * 0.8) ? 'var(--gold)' : 'var(--red)';
-        const accentClass = c.completed >= c.total ? 'green-accent' : c.completed >= c.total * 0.8 ? '' : 'red-accent';
+        const pct = c.score_pct ?? (c.completed && c.total ? Math.round(c.completed/c.total*100*10)/10 : null);
+        const scoreColor = pct >= 90 ? 'var(--green)' : pct >= 70 ? 'var(--gold)' : 'var(--red)';
+        const accentClass = pct >= 90 ? 'green-accent' : pct >= 70 ? '' : 'red-accent';
+
+        // Group checklists by category
+        const cats = {cocina: [], salon: [], jefaturas: [], periodicos: []};
+        (c.checklists || []).forEach(cl => {
+          if (cats[cl.category]) cats[cl.category].push(cl);
+          else cats.cocina.push(cl);
+        });
+
+        const realizados = (c.checklists || []).filter(cl => cl.status === 'realizado').length;
+        const noRealizados = (c.checklists || []).filter(cl => cl.status === 'no_realizado').length;
+
         html += `
           <div class="cr-card ${accentClass}">
-            <div class="kpi-label">${label}</div>
+            <div class="kpi-label">${label}${c.jefe_local ? ` · Jefe: ${c.jefe_local}` : ''}</div>
             <div style="display:flex;align-items:baseline;gap:6px;margin:8px 0">
-              <span class="cr-score-big" style="color:${scoreColor}">${c.completed ?? '?'}</span>
-              <span class="cr-score-total">/ ${c.total ?? '?'}</span>
-              ${c.pct != null ? `<span class="kpi-badge ${c.pct >= 90 ? 'up' : c.pct >= 70 ? 'neutral' : 'down'}">${c.pct}%</span>` : ''}
-            </div>
-            ${c.temps_critical > 0 ? `<div class="cr-detail-row"><span><span class="cr-dot" style="background:var(--red)"></span>Temperaturas críticas</span><span style="color:var(--red)">${c.temps_critical}</span></div>` : ''}
-            ${c.temps_warn > 0 ? `<div class="cr-detail-row"><span><span class="cr-dot" style="background:var(--yellow)"></span>Advertencias temp</span><span style="color:var(--yellow)">${c.temps_warn}</span></div>` : ''}
-            ${c.missing?.length ? `<div class="cr-detail-row"><span><span class="cr-dot" style="background:var(--red)"></span>Faltantes</span><span style="color:var(--red)">${c.missing.length}</span></div>` : ''}
-            ${c.no_cumple?.length ? `<div class="cr-detail-row"><span><span class="cr-dot" style="background:var(--yellow)"></span>No cumple</span><span style="color:var(--yellow)">${c.no_cumple.length}</span></div>` : ''}
-            ${(!c.temps_critical && !c.temps_warn && !c.missing?.length && !c.no_cumple?.length) ? `<div class="cr-detail-row" style="color:var(--green)">✓ Sin anomalías detectadas</div>` : ''}
+              <span class="cr-score-big" style="color:${scoreColor}">${pct ?? '?'}%</span>
+              <span class="cr-score-total">${c.completed ?? realizados} / ${c.total ?? (realizados + noRealizados)}</span>
+            </div>`;
+
+        // Render checklists by category
+        const catLabels = {cocina: '🍳 Cocina', salon: '🍽️ Salón', jefaturas: '📋 Jefaturas', periodicos: '🔄 Periódicos'};
+        for (const [cat, items] of Object.entries(cats)) {
+          if (!items.length) continue;
+          html += `<div class="cr-cat-title">${catLabels[cat]}</div>`;
+          items.forEach(cl => {
+            const isOk = cl.status === 'realizado';
+            let badgeCls = 'cr-badge-ok';
+            let badgeTxt = '✅ Realizado';
+            if (!isOk) {
+              badgeCls = 'cr-badge-fail';
+              badgeTxt = '❌ No Realizado';
+            } else if (cl.badge && (cl.badge.includes('Incompleto') || cl.badge.includes('Alertas'))) {
+              badgeCls = 'cr-badge-warn';
+              badgeTxt = cl.badge;
+            } else if (cl.badge && cl.badge !== '✅ OK' && cl.badge !== '100%') {
+              badgeTxt = cl.badge;
+            }
+            html += `<div class="cr-checklist-row"><span class="cr-name">${cl.name || 'Sin nombre'}</span><span class="${badgeCls}">${badgeTxt}</span></div>`;
+          });
+        }
+
+        // Temps fuera de rango
+        if (c.temps_fuera?.length) {
+          html += `<div class="cr-alert-box">
+            <div style="color:#f87171;font-weight:600;margin-bottom:6px">🔴 Temperaturas Fuera de Rango</div>`;
+          c.temps_fuera.forEach(t => {
+            html += `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px"><span style="color:#fff">${t.equipo}</span><span style="color:#f87171;font-weight:600">${t.temp}</span></div>`;
+          });
+          html += `</div>`;
+        }
+        if (c.temps_limite?.length) {
+          html += `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">⚠️ En límite: ${c.temps_limite.map(t => `${t.equipo} (${t.temp})`).join(', ')}</div>`;
+        }
+
+        // No Cumple detalle
+        if (c.no_cumple?.length) {
+          html += `<div class="cr-alert-box" style="border-color:#5a3a1a">
+            <div style="color:#fb923c;font-weight:600;margin-bottom:6px">⚠️ Ítems No Cumple</div>`;
+          c.no_cumple.forEach(nc => {
+            html += `<div style="font-size:11px;padding:3px 0"><span style="color:#fff">${nc.item}</span>${nc.detail ? `<br><span style="color:#888">${nc.detail}</span>` : ''}</div>`;
+          });
+          html += `</div>`;
+        }
+
+        // Merma
+        if (c.merma?.length) {
+          html += `<div class="cr-merma-box">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">🗑️ Merma Declarada</div>`;
+          c.merma.forEach(m => {
+            html += `<div class="cr-merma-prod">${m.producto} — ${m.cantidad}</div>
+              <div class="cr-merma-detail">${m.motivo ? `Motivo: ${m.motivo}` : ''}${m.autoriza ? ` · Autoriza: ${m.autoriza}` : ''}</div>`;
+          });
+          html += `</div>`;
+        }
+
+        // Piloto automático
+        if (c.piloto_auto) {
+          html += `<div class="cr-alert-box" style="margin-top:8px">
+            <div style="color:#f87171;font-weight:600;margin-bottom:4px">⚡ Piloto Automático Detectado</div>
+            <div style="font-size:11px;color:#ccc">${c.piloto_auto}</div>
           </div>`;
+        }
+
+        html += `</div>`;
       });
 
       html += `</div></div>`;
