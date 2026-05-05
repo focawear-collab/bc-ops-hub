@@ -98,6 +98,8 @@ module.exports = async function handler(req, res) {
         week_num: weekly.week_num,
         start_date: weekly.start_date,
         end_date: weekly.end_date,
+        prev_start_date: weekly.prev_start_date,
+        prev_end_date: weekly.prev_end_date,
         total_presencial: weekly.total_presencial,
         prev_total_presencial: weekly.prev_total_presencial,
         stores: (weekly.stores || []).map(s => ({
@@ -110,6 +112,10 @@ module.exports = async function handler(req, res) {
             }])
           ),
         })),
+        top_by_revenue: (weekly.top_by_revenue || []).slice(0, 10),
+        top_by_quantity: (weekly.top_by_quantity || []).slice(0, 10),
+        weekly_garzones: (weekly.weekly_garzones || []).slice(0, 10),
+        weekly_channels: weekly.weekly_channels || [],
       } : null,
       checkrocket,
       briefing_detail: briefingDetail,
