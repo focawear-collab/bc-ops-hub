@@ -209,51 +209,142 @@ function parseWhatsApp(text) {
   return data;
 }
 
-// ── CheckRocket HTML parser ─────────────────────────────────────────
+// ── CheckRocket HTML parser (v2 — confiable, por checklist) ────────
 
 function parseCheckRocket(html) {
-  const data = { completed: null, total: null, pct: null, missing: [], temps_critical: 0, temps_warn: 0, no_cumple: [], merma: [] };
+  const data = {
+    score_pct: null,
+    completed: null,
+    total: null,
+    fecha: null,
+    jefe_local: null,
+    checklists: [],       // [{name, status, meta, badge, category}]
+    no_cumple: [],        // [{checklist, item, detail}]
+    merma: [],            // [{producto, cantidad, motivo, autoriza, costo_estimado}]
+    temps_fuera: [],      // [{equipo, temp, rango, estado}]
+    temps_limite: [],     // [{equipo, temp, rango}]
+    piloto_auto: null,    // string or null
+  };
 
-  // Score: "X / 11 obligatorios" or "X/13"
+  // ── Score banner ──
   const scoreM = html.match(/(\d+)\s*\/\s*(\d+)\s*obligatori/i);
   if (scoreM) { data.completed = parseInt(scoreM[1]); data.total = parseInt(scoreM[2]); }
+  // score-big">72.7%</div> ... Cumplimiento
+  const pctM = html.match(/score-big[^>]*>([\d.,]+)\s*%/);
+  if (pctM) data.score_pct = parseFloat(pctM[1].replace(',', '.'));
 
-  // Percentage
-  const pctM = html.match(/(\d+(?:[.,]\d+)?)\s*%\s*(?:cumplimiento|efectivo)/i);
-  if (pctM) data.pct = parseFloat(pctM[1].replace(',', '.'));
+  // Fecha
+  const fechaM = html.match(/<title>[^<]*?(\d{1,2}\s+\w+\s+\d{4})/i) || html.match(/(\w+\s+\d{1,2}\s+de\s+\w+\s+\d{4})/i);
+  if (fechaM) data.fecha = fechaM[1].trim();
 
-  // Missing checklists: look for ❌ or "Falta" or badge-missing patterns
-  const missingRe = /(?:❌|falta|missing)[^<]*?(?:checklist|campaña)?[:\s]*([^<\n]{3,60})/gi;
-  let mm;
-  while ((mm = missingRe.exec(html)) !== null) {
-    const name = mm[1].trim().replace(/^[:\s-]+/, '').replace(/\s+/g, ' ');
-    if (name && !data.missing.includes(name)) data.missing.push(name);
+  // Jefe de local
+  const jefeM = html.match(/Jefe de Local:\s*([^<]+)/i);
+  if (jefeM) data.jefe_local = jefeM[1].trim();
+
+  // ── Checklists: parse each checklist-row ──
+  // Canonical checklist categorization
+  const COCINA = ['Reporte de Stock', 'Cierre de Turno Cocina', 'BPM — Control de Temperatura',
+    'BPM — Temperatura Pollos', 'BPM — Higiene y Salud del Personal', 'BPM — Limpieza e Higiene de Equipos',
+    'Declaración de Merma', 'Cierre Diario Costillas y Lomos', 'Inventario Diario'];
+  const SALON = ['Apertura de Estación', 'Turno Intermedio', 'Cierre de Estación'];
+  const JEFATURAS = ['Auditoría Jefe de Local', 'CHECKLIST GENERAL'];
+  const PERIODICOS = ['Calibración Termómetros', 'Cambio Aceite', 'Recepción Mercadería',
+    'Prueba Cocina', 'Producto Agotado', 'Cliente Incógnito'];
+
+  function categorize(name) {
+    const n = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (COCINA.some(c => n.includes(c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').substring(0, 12)))) return 'cocina';
+    if (SALON.some(c => n.includes(c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').substring(0, 8)))) return 'salon';
+    if (JEFATURAS.some(c => n.includes(c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').substring(0, 8)))) return 'jefaturas';
+    if (PERIODICOS.some(c => n.includes(c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').substring(0, 8)))) return 'periodicos';
+    // Fallback: check for common keywords
+    if (/merma|declaraci/i.test(n)) return 'cocina';
+    if (/apertura|cierre.*estaci|turno.*intermedio/i.test(n)) return 'salon';
+    if (/auditor|general/i.test(n)) return 'jefaturas';
+    return 'cocina'; // default
   }
 
-  // Also try to find faltantes count
-  const faltM = html.match(/(\d+)\s*faltante/i);
-  if (faltM && data.missing.length === 0) {
-    data.missing_count = parseInt(faltM[1]);
+  // Match each checklist-row div block (class="checklist-row" in HTML, not CSS)
+  const rowRe = /class="checklist-row"[\s\S]*?class="checklist-name"[^>]*>([^<]+)<[\s\S]*?class="checklist-meta"[^>]*>([^<]*)<[\s\S]*?class="badge\s+(badge-ok|badge-warn|badge-fail|badge-missing)"[^>]*>([^<]*)</g;
+  let m;
+  while ((m = rowRe.exec(html)) !== null) {
+    const name = m[1].trim();
+    const meta = m[2].trim();
+    const badgeClass = m[3];
+    const badgeText = m[4].trim();
+
+    let status;
+    if (badgeClass === 'badge-missing') {
+      status = 'no_realizado';
+    } else {
+      status = 'realizado';
+    }
+
+    data.checklists.push({
+      name,
+      status,
+      meta,
+      badge: badgeText,
+      category: categorize(name),
+    });
   }
 
-  // Temperature anomalies: look for critical/warn patterns
-  const critRe = /(?:🔴|crítico|critical|FUERA)/gi;
-  const warnRe = /(?:🟡|⚠|advertencia|warn)/gi;
-  data.temps_critical = (html.match(critRe) || []).length;
-  data.temps_warn = (html.match(warnRe) || []).length;
-
-  // No cumple items
-  const ncRe = /No Cumple[^<]*?[:\s]*([^<\n]{5,80})/gi;
-  while ((mm = ncRe.exec(html)) !== null) {
-    const item = mm[1].trim().replace(/^[:\s-]+/, '');
-    if (item && !data.no_cumple.includes(item)) data.no_cumple.push(item);
+  // ── No Cumple items: parse no-cumple-item divs ──
+  const ncRe = /class="no-cumple-item"[\s\S]*?font-weight:\s*500[^>]*>([^<]+)<[\s\S]*?margin-top:\s*2px[^>]*>([^<]*)</g;
+  while ((m = ncRe.exec(html)) !== null) {
+    data.no_cumple.push({
+      item: m[1].trim(),
+      detail: m[2].trim(),
+    });
   }
 
-  // Merma items
-  const mermaRe = /merma[^<]*?(\d+(?:[.,]\d+)?)\s*(?:un|kg|lt|porciones)/gi;
-  while ((mm = mermaRe.exec(html)) !== null) {
-    data.merma.push(mm[0].trim());
+  // ── Merma: parse merma-card divs ──
+  const mermaRe = /class="merma-card"[\s\S]*?class="prod">([^<]+)<[\s\S]*?class="detail">([^<]+)</g;
+  while ((m = mermaRe.exec(html)) !== null) {
+    const prodLine = m[1].trim(); // e.g. "Calugas — 705g"
+    const detailLine = m[2].trim(); // e.g. "Motivo: Producto vencido ... · Autoriza: Jonathan"
+    const cantM = prodLine.match(/([\d.,]+)\s*(g|kg|un|lt|porciones|ml)/i);
+    const motivoM = detailLine.match(/Motivo:\s*([^·]+)/i);
+    const autorizaM = detailLine.match(/Autoriza:\s*([^·<]+)/i);
+    data.merma.push({
+      producto: prodLine.replace(/\s*[—–-]\s*[\d.,]+\s*(g|kg|un|lt|porciones|ml).*/i, '').trim(),
+      cantidad: cantM ? cantM[1] + cantM[2] : prodLine,
+      motivo: motivoM ? motivoM[1].trim() : null,
+      autoriza: autorizaM ? autorizaM[1].trim() : null,
+    });
   }
+
+  // ── Temperaturas fuera de rango: parse temp-table rows ──
+  const tempSection = html.match(/temp-table[\s\S]*?<\/table>/g) || [];
+  for (const tbl of tempSection) {
+    const trRe = /<tr[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]*>)*\s*([^<]+?)\s*(?:<[^>]*>)*<\/td>\s*<td[^>]*class="(temp-crit|temp-warn|temp-ok)"[^>]*>([^<]+)<\/td>[\s\S]*?<td[^>]*>([^<]*)<\/td>/g;
+    let tm;
+    while ((tm = trRe.exec(tbl)) !== null) {
+      const equipo = tm[1].trim();
+      const cls = tm[2];
+      const temp = tm[3].trim();
+      const rango = tm[4] ? tm[4].trim() : '';
+      if (cls === 'temp-crit') {
+        data.temps_fuera.push({ equipo, temp, rango, estado: 'critico' });
+      } else if (cls === 'temp-warn') {
+        data.temps_limite.push({ equipo, temp, rango });
+      }
+    }
+    // Also catch rows with inline style for critical temps (BC2 format)
+    const critRowRe = /<tr[^>]*style="background:#1a0808"[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]*>)*\s*([^<]+?)\s*(?:<[^>]*>)*<\/td>\s*<td[^>]*class="temp-crit"[^>]*>([^<]+)/g;
+    while ((tm = critRowRe.exec(tbl)) !== null) {
+      const equipo = tm[1].trim();
+      const temp = tm[2].trim();
+      // Avoid duplicates
+      if (!data.temps_fuera.some(t => t.equipo === equipo)) {
+        data.temps_fuera.push({ equipo, temp, rango: '', estado: 'critico' });
+      }
+    }
+  }
+
+  // ── Piloto automático ──
+  const pilotoM = html.match(/Posible Piloto Autom[áa]tico[\s\S]*?<div[^>]*>([^<]{20,300})/i);
+  if (pilotoM) data.piloto_auto = pilotoM[1].trim();
 
   return data;
 }
@@ -376,12 +467,14 @@ function buildScore(daily, checkrocket, google) {
     components.ventas = { value: daily.meta_diaria_pct, weight: 40 };
   }
 
-  // CheckRocket: average of both locals
+  // CheckRocket: average of both locals (works with v2 parser)
   const crScores = [];
   for (const loc of ['bc1', 'bc2']) {
     const cr = checkrocket?.[loc];
     if (cr?.completed != null && cr?.total) {
       crScores.push((cr.completed / cr.total) * 100);
+    } else if (cr?.score_pct != null) {
+      crScores.push(cr.score_pct);
     }
   }
   if (crScores.length) {
