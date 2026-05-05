@@ -384,25 +384,51 @@ function parseCheckRocket(html) {
 // ── Briefing HTML parser ────────────────────────────────────────────
 
 function parseBriefingHTML(html) {
-  const data = { top_productos: [], garzones: [], medios_pago: [] };
+  const data = { top_productos: [], garzones_bc1: [], garzones_bc2: [], garzones: [], medios_pago: [] };
 
-  // Garzones: section "RANKING GARZONES" — rows with <td><span..>N</span></td><td><strong>Name</strong></td><td class="num">$X</td><td class="num">N</td><td class="num">$X</td>
+  // Garzones: section "RANKING GARZONES" — now split by local (local-card divs)
   const garzSection = extractSection(html, 'RANKING GARZ', 'CHECK');
   if (garzSection) {
-    const rowRe = /<tr[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]+>)*\s*(\d+)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*([^<]+?)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*\$([\d.,]+)/g;
-    let m;
-    while ((m = rowRe.exec(garzSection)) !== null && data.garzones.length < 8) {
-      // Extract cuentas and ticket from remaining cells
-      const afterMatch = garzSection.substring(m.index + m[0].length);
-      const cuentasM = afterMatch.match(/<td[^>]*>\s*(?:<[^>]+>)*\s*(\d+)/);
-      const ticketM = afterMatch.match(/<td[^>]*>\s*(?:<[^>]+>)*\s*\$([\d.,]+)/);
-      data.garzones.push({
-        rank: parseInt(m[1]),
-        name: m[2].replace(/<[^>]+>/g, '').trim(),
-        ventas: parseInt(m[3].replace(/\./g, '').replace(',', '')),
-        cuentas: cuentasM ? parseInt(cuentasM[1]) : 0,
-        ticket: ticketM ? parseInt(ticketM[1].replace(/\./g, '').replace(',', '')) : 0,
-      });
+    // New format: two local-card divs (BC1 gold, BC2 blue) each with their own table
+    const localCardRe = /local-card[^>]*>[\s\S]*?<h3[^>]*>.*?(BC1|BC2|Black Chicken #1|Black Chicken #2)[\s\S]*?<table>([\s\S]*?)<\/table>/gi;
+    let lm;
+    while ((lm = localCardRe.exec(garzSection)) !== null) {
+      const localId = lm[1].includes('1') ? 'BC1' : 'BC2';
+      const tableHtml = lm[2];
+      const rowRe = /<tr[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]+>)*\s*(\d+)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*([^<]+?)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*\$([\d.,]+)/g;
+      let m;
+      const targetArr = localId === 'BC1' ? data.garzones_bc1 : data.garzones_bc2;
+      while ((m = rowRe.exec(tableHtml)) !== null && targetArr.length < 6) {
+        const afterMatch = tableHtml.substring(m.index + m[0].length);
+        const cuentasM = afterMatch.match(/<td[^>]*>\s*(?:<[^>]+>)*\s*(\d+)/);
+        const ticketM = afterMatch.match(/<td[^>]*>\s*(?:<[^>]+>)*\s*\$([\d.,]+)/);
+        targetArr.push({
+          rank: parseInt(m[1]),
+          name: m[2].replace(/<[^>]+>/g, '').trim(),
+          ventas: parseInt(m[3].replace(/\./g, '').replace(',', '')),
+          cuentas: cuentasM ? parseInt(cuentasM[1]) : 0,
+          ticket: ticketM ? parseInt(ticketM[1].replace(/\./g, '').replace(',', '')) : 0,
+          local: localId,
+        });
+      }
+    }
+
+    // Fallback: old format (single combined table, no local-card)
+    if (!data.garzones_bc1.length && !data.garzones_bc2.length) {
+      const rowRe = /<tr[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]+>)*\s*(\d+)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*([^<]+?)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*\$([\d.,]+)/g;
+      let m;
+      while ((m = rowRe.exec(garzSection)) !== null && data.garzones.length < 8) {
+        const afterMatch = garzSection.substring(m.index + m[0].length);
+        const cuentasM = afterMatch.match(/<td[^>]*>\s*(?:<[^>]+>)*\s*(\d+)/);
+        const ticketM = afterMatch.match(/<td[^>]*>\s*(?:<[^>]+>)*\s*\$([\d.,]+)/);
+        data.garzones.push({
+          rank: parseInt(m[1]),
+          name: m[2].replace(/<[^>]+>/g, '').trim(),
+          ventas: parseInt(m[3].replace(/\./g, '').replace(',', '')),
+          cuentas: cuentasM ? parseInt(cuentasM[1]) : 0,
+          ticket: ticketM ? parseInt(ticketM[1].replace(/\./g, '').replace(',', '')) : 0,
+        });
+      }
     }
   }
 
