@@ -69,6 +69,8 @@ module.exports = async function handler(req, res) {
       ventas: d.ventas_total,
       bc1: d.bc1?.ventas || null,
       bc2: d.bc2?.ventas || null,
+      cuentas: (d.bc1?.cuentas || 0) + (d.bc2?.cuentas || 0),
+      ticket: d.bc1?.ticket || d.bc2?.ticket || null,
     })).reverse(); // oldest first for charts
 
     // Meta mensual
@@ -158,7 +160,8 @@ function pf(m) { return m ? parseFloat(m[1].replace(',', '.')) : null; }
 function parseWhatsApp(text) {
   const lines = text.split('\n');
   const data = { fecha: null, ventas_total: null, meta_pct: null, bc1: null, bc2: null,
-                 canales: null, tipo_venta: null, alertas: [], positivo: [], meta_diaria_pct: null };
+                 canales: null, tipo_venta: null, alertas: [], positivo: [], meta_diaria_pct: null,
+                 cancelled_count: null, cancel_total: null };
   let section = null;
 
   for (const line of lines) {
@@ -205,6 +208,13 @@ function parseWhatsApp(text) {
       const m = line.match(/\(([0-9,]+)%\)/);
       if (m) data.meta_diaria_pct = parseFloat(m[1].replace(',', '.'));
     }
+
+    // Extract anulaciones: look for patterns like "Anulaciones: N" or "Canceladas: $XXXX"
+    const anulacionesCountM = line.match(/(?:Anulacion|Cancelada).*?:\s*(\d+)\s*(?:orden|venta|operación)/i);
+    if (anulacionesCountM) data.cancelled_count = parseInt(anulacionesCountM[1]);
+
+    const anulacionesTotalM = line.match(/(?:Cancelada|Anulacion).*?:\s*\$?([\d.]+)/i);
+    if (anulacionesTotalM) data.cancel_total = parseInt(anulacionesTotalM[1].replace(/\./g, ''), 10);
 
     if (line.startsWith('- ') && section) {
       const item = line.substring(2).trim();
@@ -390,7 +400,32 @@ function parseCheckRocket(html) {
 // ── Briefing HTML parser ────────────────────────────────────────────
 
 function parseBriefingHTML(html) {
-  const data = { top_productos: [], garzones_bc1: [], garzones_bc2: [], garzones: [], medios_pago: [] };
+  const data = {
+    top_productos: [], garzones_bc1: [], garzones_bc2: [], garzones: [], medios_pago: [],
+    delta_ventas_pct: null, delta_ticket_pct: null, delta_cuentas_pct: null, prev_day_label: null
+  };
+
+  // Resumen Ejecutivo: extract delta comparisons vs previous day
+  const resumenSection = extractSection(html, 'Resumen Ejecutivo', 'MEDIOS DE PAGO|RANKING GARZ');
+  if (resumenSection) {
+    // Extract prev_day_label from the comparison header (e.g., "Lunes 27/04")
+    const prevDayM = resumenSection.match(/(?:vs|vs\.)\s+(\w+\s+\d{1,2}\/\d{2})/i);
+    if (prevDayM) data.prev_day_label = prevDayM[1].trim();
+
+    // Parse the table for Venta total, Ticket promedio, Cuentas rows
+    const tableRe = /<tr[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]+>)*\s*(Venta total|Ticket promedio|Cuentas)\s*(?:<[^>]+>)*<\/td>[\s\S]*?<td[^>]*>[\s\S]*?<\/td>[\s\S]*?<td[^>]*class="[^"]*red[^"]*"[^>]*>([^<]*)<\/td>/gi;
+    let m;
+    while ((m = tableRe.exec(resumenSection)) !== null) {
+      const label = m[1].trim();
+      const deltaText = m[2].trim(); // e.g., "-13,9% ↓"
+      const deltaMatch = deltaText.match(/([-+]?[\d,]+)%/);
+      const deltaPct = deltaMatch ? parseFloat(deltaMatch[1].replace(',', '.')) : null;
+
+      if (label === 'Venta total') data.delta_ventas_pct = deltaPct;
+      else if (label === 'Ticket promedio') data.delta_ticket_pct = deltaPct;
+      else if (label === 'Cuentas') data.delta_cuentas_pct = deltaPct;
+    }
+  }
 
   // Garzones: section "RANKING GARZONES" — now split by local (local-card divs)
   const garzSection = extractSection(html, 'RANKING GARZ', 'CHECK');
@@ -522,6 +557,16 @@ function buildMetaMensual(daily) {
 
   // meta_pct from briefing is accumulated monthly %
   const acumulado = daily.meta_pct ? Math.round(META_TOTAL * daily.meta_pct / 100) : null;
+  const diaActual = new Date().getDate();
+  const diasMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+
+  // Calculate linear projection
+  let projected = null, willHitMeta = null, projectedPct = null;
+  if (acumulado && diaActual > 0) {
+    projected = Math.round((acumulado / diaActual) * diasMes);
+    projectedPct = Math.round((projected / META_TOTAL) * 100 * 10) / 10;
+    willHitMeta = projected >= META_TOTAL;
+  }
 
   return {
     meta_total: META_TOTAL,
@@ -529,8 +574,11 @@ function buildMetaMensual(daily) {
     meta_bc2: META_BC2,
     acumulado_pct: daily.meta_pct,
     acumulado_monto: acumulado,
-    dia_actual: new Date().getDate(),
-    dias_mes: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(),
+    dia_actual: diaActual,
+    dias_mes: diasMes,
+    projected: projected,
+    will_hit_meta: willHitMeta,
+    projected_pct: projectedPct,
   };
 }
 
