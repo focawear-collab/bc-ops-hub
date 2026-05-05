@@ -1563,14 +1563,13 @@
     }
 
     // ── Section 6: Top Productos + Garzones (from briefing HTML) ──
-    if (bd && (bd.top_productos?.length || bd.garzones?.length)) {
+    const hasGarzones = bd && (bd.garzones_bc1?.length || bd.garzones_bc2?.length || bd.garzones?.length);
+    if (bd && (bd.top_productos?.length || hasGarzones)) {
       html += `<div class="dash-section">
-        <div class="dash-section-title">DETALLE DEL DÍA</div>
-        <div class="dash-grid-2">`;
+        <div class="dash-section-title">DETALLE DEL DÍA</div>`;
 
       if (bd.top_productos?.length) {
-        html += `
-          <div class="kpi-card">
+        html += `<div class="kpi-card" style="margin-bottom:12px">
             <div class="kpi-label">Top Productos</div>
             <table class="kpi-table">
               <thead><tr><th>#</th><th>Producto</th><th>Uds</th><th>Ingresos</th></tr></thead>
@@ -1586,26 +1585,39 @@
         html += `</tbody></table></div>`;
       }
 
-      if (bd.garzones?.length) {
-        html += `
-          <div class="kpi-card">
+      // Garzones: new format (per local) or legacy (combined)
+      if (bd.garzones_bc1?.length || bd.garzones_bc2?.length) {
+        const renderGarzonTable = (list, label, color) => {
+          if (!list?.length) return `<div class="kpi-card"><div class="kpi-label" style="color:${color}">${label} — Garzones</div><div style="color:#666;font-size:12px;padding:8px">Sin datos</div></div>`;
+          let t = `<div class="kpi-card">
+            <div class="kpi-label" style="color:${color}">${label} — Garzones</div>
+            <table class="garzon-table">
+              <thead><tr><th>#</th><th>Nombre</th><th>Ventas</th><th>Ctas</th><th>Ticket</th></tr></thead>
+              <tbody>`;
+          list.forEach(g => {
+            t += `<tr><td>${g.rank}</td><td>${g.name}</td><td>$${$(g.ventas)}</td><td>${g.cuentas}</td><td>$${$(g.ticket)}</td></tr>`;
+          });
+          t += `</tbody></table></div>`;
+          return t;
+        };
+        html += `<div class="dash-grid-2">`;
+        html += renderGarzonTable(bd.garzones_bc1, 'BC1', 'var(--gold)');
+        html += renderGarzonTable(bd.garzones_bc2, 'BC2', '#60a5fa');
+        html += `</div>`;
+      } else if (bd.garzones?.length) {
+        // Legacy combined format
+        html += `<div class="kpi-card">
             <div class="kpi-label">Garzones</div>
             <table class="garzon-table">
               <thead><tr><th>#</th><th>Nombre</th><th>Ventas</th><th>Ctas</th><th>Ticket</th></tr></thead>
               <tbody>`;
         bd.garzones.forEach(g => {
-          html += `<tr>
-            <td>${g.rank}</td>
-            <td>${g.name}</td>
-            <td>$${$(g.ventas)}</td>
-            <td>${g.cuentas}</td>
-            <td>$${$(g.ticket)}</td>
-          </tr>`;
+          html += `<tr><td>${g.rank}</td><td>${g.name}</td><td>$${$(g.ventas)}</td><td>${g.cuentas}</td><td>$${$(g.ticket)}</td></tr>`;
         });
         html += `</tbody></table></div>`;
       }
 
-      html += `</div></div>`;
+      html += `</div>`;
 
       // Medios de pago
       if (bd.medios_pago?.length) {
