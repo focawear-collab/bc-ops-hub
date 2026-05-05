@@ -401,7 +401,7 @@ function parseCheckRocket(html) {
 
 function parseBriefingHTML(html) {
   const data = {
-    top_productos: [], garzones_bc1: [], garzones_bc2: [], garzones: [], medios_pago: [],
+    top_productos: [], product_ranking_revenue: [], product_ranking_units: [], hourly_curve: [], garzones_bc1: [], garzones_bc2: [], garzones: [], medios_pago: [],
     delta_ventas_pct: null, delta_ticket_pct: null, delta_cuentas_pct: null, prev_day_label: null
   };
 
@@ -490,7 +490,7 @@ function parseBriefingHTML(html) {
   }
 
   // Medios de pago: section "MEDIOS DE PAGO" — bar-row divs with bar-label, bar-val
-  const mediosSection = extractSection(html, 'MEDIOS DE PAGO', 'RANKING GARZ');
+  const mediosSection = extractSection(html, 'MEDIOS DE PAGO', 'RANKING PROD|RANKING GARZ');
   if (mediosSection) {
     const barRe = /bar-label[^>]*>([^<]+)<[\s\S]*?<strong>\$([\d.,]+)<\/strong>\s*<span[^>]*>([\d.,]+%)/g;
     let m;
@@ -501,6 +501,70 @@ function parseBriefingHTML(html) {
           metodo: name,
           monto: parseInt(m[2].replace(/\./g, '').replace(',', '')),
           pct: m[3],
+        });
+      }
+    }
+  }
+
+  // Product Ranking: section "RANKING PRODUCTOS"
+  const prodSection = extractSection(html, 'RANKING PRODUCTOS', 'CURVA HORARIA');
+  if (prodSection) {
+    // Revenue table (TOP POR INGRESOS)
+    const revSection = prodSection.split(/TOP POR UNIDADES/i)[0] || '';
+    const revRowRe = /<tr[^>]*>\s*<td[^>]*>(?:<[^>]+>)*\s*(\d+)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>([^<]+)<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*\$([\d.,]+)/gi;
+    let pm;
+    while ((pm = revRowRe.exec(revSection)) !== null && data.product_ranking_revenue.length < 15) {
+      const afterM = revSection.substring(pm.index + pm[0].length);
+      const unitsM = afterM.match(/<td[^>]*>(?:<[^>]+>)*\s*(\d+)/);
+      data.product_ranking_revenue.push({
+        rank: parseInt(pm[1]),
+        name: pm[2].trim(),
+        revenue: parseInt(pm[3].replace(/\./g, '').replace(',', '')),
+        units: unitsM ? parseInt(unitsM[1]) : 0,
+      });
+    }
+
+    // Units table (TOP POR UNIDADES)
+    const unitsSection = prodSection.split(/TOP POR UNIDADES/i)[1] || '';
+    const unitRowRe = /<tr[^>]*>\s*<td[^>]*>(?:<[^>]+>)*\s*(\d+)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>([^<]+)<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*(\d+)/gi;
+    let um;
+    while ((um = unitRowRe.exec(unitsSection)) !== null && data.product_ranking_units.length < 15) {
+      const afterU = unitsSection.substring(um.index + um[0].length);
+      const revM = afterU.match(/<td[^>]*>(?:<[^>]+>)*\s*\$([\d.,]+)/);
+      data.product_ranking_units.push({
+        rank: parseInt(um[1]),
+        name: um[2].trim(),
+        units: parseInt(um[3]),
+        revenue: revM ? parseInt(revM[1].replace(/\./g, '').replace(',', '')) : 0,
+      });
+    }
+  }
+
+  // Hourly Curve: section "CURVA HORARIA"
+  const hourlySection = extractSection(html, 'CURVA HORARIA', 'RANKING GARZ');
+  if (hourlySection) {
+    // bar-row divs: label has "HH:00", bar-val has "$X.XXX · Y ctas"
+    const hourRe = /bar-label[^>]*>\s*(\d{2}):00[\s\S]*?bar-fill[^>]*width:([\d.]+)%[^>]*background:#d4a84b[\s\S]*?bar-val[^>]*>\s*\$([\d.,]+)\s*·\s*(\d+)\s*ctas/gi;
+    let hm;
+    while ((hm = hourRe.exec(hourlySection)) !== null) {
+      data.hourly_curve.push({
+        hour: parseInt(hm[1]),
+        label: hm[1] + ':00',
+        sales: parseInt(hm[3].replace(/\./g, '').replace(',', '')),
+        count: parseInt(hm[4]),
+      });
+    }
+
+    // Fallback: simpler regex if bar-fill doesn't match (e.g., only BC2)
+    if (!data.hourly_curve.length) {
+      const simpleRe = /bar-label[^>]*>\s*(\d{2}):00[\s\S]*?bar-val[^>]*>\s*\$([\d.,]+)\s*·\s*(\d+)\s*ctas/gi;
+      let sm;
+      while ((sm = simpleRe.exec(hourlySection)) !== null) {
+        data.hourly_curve.push({
+          hour: parseInt(sm[1]),
+          label: sm[1] + ':00',
+          sales: parseInt(sm[2].replace(/\./g, '').replace(',', '')),
+          count: parseInt(sm[3]),
         });
       }
     }

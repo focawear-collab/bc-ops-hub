@@ -1612,13 +1612,54 @@
       html += `</div></div>`;
     }
 
-    // ── Section 6: Top Productos + Garzones (from briefing HTML) ──
+    // ── Section 6: Ranking Productos + Curva Horaria + Garzones ──
     const hasGarzones = bd && (bd.garzones_bc1?.length || bd.garzones_bc2?.length || bd.garzones?.length);
-    if (bd && (bd.top_productos?.length || hasGarzones)) {
+    const hasProducts = bd && (bd.product_ranking_revenue?.length || bd.top_productos?.length);
+    const hasHourly = bd && bd.hourly_curve?.length;
+    if (bd && (hasProducts || hasHourly || hasGarzones)) {
       html += `<div class="dash-section">
         <div class="dash-section-title">DETALLE DEL DÍA</div>`;
 
-      if (bd.top_productos?.length) {
+      // Ranking Productos (new dual-view format)
+      if (bd.product_ranking_revenue?.length) {
+        html += `<div class="dash-grid-2" style="margin-bottom:12px">`;
+        // By revenue
+        html += `<div class="kpi-card">
+            <div class="kpi-label" style="color:var(--gold)">Top por Ingresos</div>
+            <table class="garzon-table">
+              <thead><tr><th>#</th><th>Producto</th><th>Ingresos</th><th>Uds</th></tr></thead>
+              <tbody>`;
+        bd.product_ranking_revenue.forEach(p => {
+          const rowStyle = p.rank <= 3 ? 'color:var(--gold);font-weight:600' : '';
+          html += `<tr style="${rowStyle}">
+            <td>${p.rank}</td>
+            <td>${p.name}</td>
+            <td>$\${$(p.revenue)}</td>
+            <td>${p.units}</td>
+          </tr>`;
+        });
+        html += `</tbody></table></div>`;
+        // By units
+        if (bd.product_ranking_units?.length) {
+          html += `<div class="kpi-card">
+            <div class="kpi-label" style="color:#60a5fa">Top por Unidades</div>
+            <table class="garzon-table">
+              <thead><tr><th>#</th><th>Producto</th><th>Uds</th><th>Ingresos</th></tr></thead>
+              <tbody>`;
+          bd.product_ranking_units.forEach(p => {
+            const rowStyle = p.rank <= 3 ? 'color:#60a5fa;font-weight:600' : '';
+            html += `<tr style="${rowStyle}">
+              <td>${p.rank}</td>
+              <td>${p.name}</td>
+              <td>${p.units}</td>
+              <td style="color:#666">$\${$(p.revenue)}</td>
+            </tr>`;
+          });
+          html += `</tbody></table></div>`;
+        }
+        html += `</div>`;
+      } else if (bd.top_productos?.length) {
+        // Legacy fallback
         html += `<div class="kpi-card" style="margin-bottom:12px">
             <div class="kpi-label">Top Productos</div>
             <table class="kpi-table">
@@ -1629,10 +1670,33 @@
             <td>${p.rank}</td>
             <td style="color:#fff">${p.name}</td>
             <td>${p.units}</td>
-            <td>$${$(p.revenue)}</td>
+            <td>$\${$(p.revenue)}</td>
           </tr>`;
         });
         html += `</tbody></table></div>`;
+      }
+
+      // Curva Horaria
+      if (bd.hourly_curve?.length) {
+        const maxSales = Math.max(...bd.hourly_curve.map(h => h.sales));
+        html += `<div class="kpi-card" style="margin-bottom:12px">
+          <div class="kpi-label">Curva Horaria</div>
+          <div style="padding:8px 0">`;
+        bd.hourly_curve.forEach(h => {
+          const pct = maxSales > 0 ? (h.sales / maxSales * 100) : 0;
+          const isPeak = h.sales === maxSales;
+          const barColor = isPeak ? 'var(--gold)' : 'var(--gold-dim, #8a7030)';
+          html += `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px">
+            <span style="min-width:42px;color:#888">${h.label}</span>
+            <div style="flex:1;background:var(--card-hover);border-radius:3px;height:14px;overflow:hidden">
+              <div style="height:100%;width:${pct.toFixed(1)}%;background:${barColor};border-radius:3px;transition:width .3s"></div>
+            </div>
+            <span style="min-width:110px;text-align:right;color:${isPeak ? 'var(--gold)' : '#888'};font-weight:${isPeak ? '600' : '400'}">$\${$(h.sales)} · ${h.count} ctas</span>
+          </div>`;
+        });
+        const peak = bd.hourly_curve.reduce((a, b) => a.sales > b.sales ? a : b);
+        html += `<div style="margin-top:6px;font-size:11px;color:#888">Peak: <strong style="color:var(--gold)">${peak.label}</strong> con $\${$(peak.sales)}</div>`;
+        html += `</div></div>`;
       }
 
       // Garzones: new format (per local) or legacy (combined)
