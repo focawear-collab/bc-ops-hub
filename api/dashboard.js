@@ -248,8 +248,8 @@ function parseCheckRocket(html) {
     'Declaración de Merma', 'Cierre Diario Costillas y Lomos', 'Inventario Diario'];
   const SALON = ['Apertura de Estación', 'Turno Intermedio', 'Cierre de Estación'];
   const JEFATURAS = ['Auditoría Jefe de Local', 'CHECKLIST GENERAL'];
-  const PERIODICOS = ['Calibración Termómetros', 'Cambio Aceite', 'Recepción Mercadería',
-    'Prueba Cocina', 'Producto Agotado', 'Cliente Incógnito'];
+  const PERIODICOS = ['Calibración Termómetros', 'Cambio Aceite', 'Cambio de Aceite', 'Registro Cambio',
+    'Recepción Mercadería', 'Prueba Cocina', 'Producto Agotado', 'Cliente Incógnito'];
 
   function categorize(name) {
     const n = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -298,11 +298,11 @@ function parseCheckRocket(html) {
     });
   }
 
-  // ── Merma: parse merma-card divs ──
-  const mermaRe = /class="merma-card"[\s\S]*?class="prod">([^<]+)<[\s\S]*?class="detail">([^<]+)</g;
+  // ── Merma: parse merma-card divs (old format) ──
+  const mermaRe = /class="merma-card"[\s\S]*?class="prod">([^<]+)<[\s\S]*?class="detail">([^<]+)/g;
   while ((m = mermaRe.exec(html)) !== null) {
-    const prodLine = m[1].trim(); // e.g. "Calugas — 705g"
-    const detailLine = m[2].trim(); // e.g. "Motivo: Producto vencido ... · Autoriza: Jonathan"
+    const prodLine = m[1].trim();
+    const detailLine = m[2].trim();
     const cantM = prodLine.match(/([\d.,]+)\s*(g|kg|un|lt|porciones|ml)/i);
     const motivoM = detailLine.match(/Motivo:\s*([^·]+)/i);
     const autorizaM = detailLine.match(/Autoriza:\s*([^·<]+)/i);
@@ -314,30 +314,62 @@ function parseCheckRocket(html) {
     });
   }
 
-  // ── Temperaturas fuera de rango: parse temp-table rows ──
-  const tempSection = html.match(/temp-table[\s\S]*?<\/table>/g) || [];
-  for (const tbl of tempSection) {
-    const trRe = /<tr[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]*>)*\s*([^<]+?)\s*(?:<[^>]*>)*<\/td>\s*<td[^>]*class="(temp-crit|temp-warn|temp-ok)"[^>]*>([^<]+)<\/td>[\s\S]*?<td[^>]*>([^<]*)<\/td>/g;
+  // Merma: parse merma-summary (new format with cost table)
+  const mermaSumM = html.match(/class="total-cost"[^>]*>\$?([\d.,]+)/);
+  if (mermaSumM) {
+    data.merma_costo_total = mermaSumM[1].trim();
+  }
+  // Parse merma-table rows: <td>Producto</td><td class="qty">N</td><td>unit</td><td class="cost">$X</td>
+  const mermaTableRe = /class="merma-table"[\s\S]*?<\/table>/;
+  const mermaTblMatch = html.match(mermaTableRe);
+  if (mermaTblMatch) {
+    const tblHtml = mermaTblMatch[0];
+    const rowRe2 = /<tr>\s*<td>([^<]+)<\/td>\s*<td[^>]*class="qty"[^>]*>([^<]+)<\/td>\s*<td>([^<]*)<\/td>(?:[\s\S]*?<td>([^<]*)<\/td>)?\s*<td[^>]*class="cost"[^>]*>([^<]+)<\/td>/g;
+    let mr;
+    while ((mr = rowRe2.exec(tblHtml)) !== null) {
+      data.merma.push({
+        producto: mr[1].trim(),
+        cantidad: mr[2].trim() + ' ' + (mr[3] || '').trim(),
+        motivo: mr[4] ? mr[4].trim() : null,
+        autoriza: null,
+        costo: mr[5].trim(),
+      });
+    }
+  }
+  // Merma count from banner
+  const mermaCountM = html.match(/Merma:\s*(\d+)\s*prod/i);
+  if (mermaCountM) data.merma_count = parseInt(mermaCountM[1]);
+
+  // ── Temperaturas fuera de rango: parse ONLY "Control de Temperatura" section ──
+  // Must be in a section-title (not checklist-name). Exclude "Cocción Pollos"
+  const tempSectionRe = /section-title[^>]*>[^<]*Control de Temperatura[^<]*<[\s\S]*?<table class="temp-table">([\s\S]*?)<\/table>/i;
+  const tempSectionMatch = html.match(tempSectionRe);
+  if (tempSectionMatch) {
+    const tbl = tempSectionMatch[1];
+    // Parse rows with temp-crit or temp-warn classes
+    const trRe = /<tr[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]*>)*\s*([^<]+?)\s*(?:<[^>]*>)*<\/td>\s*<td[^>]*class="(temp-crit|temp-warn)"[^>]*>([^<]+)<\/td>[\s\S]*?<td[^>]*>([^<]*)<\/td>/g;
     let tm;
     while ((tm = trRe.exec(tbl)) !== null) {
       const equipo = tm[1].trim();
       const cls = tm[2];
       const temp = tm[3].trim();
-      const rango = tm[4] ? tm[4].trim() : '';
+      const estado = tbl.substring(tm.index, tm.index + tm[0].length);
+      // Get rango from the last <td> in the row
+      const rangoM = estado.match(/<td[^>]*>([^<]*)<\/td>\s*$/);
+      const rango = rangoM ? rangoM[1].trim() : '';
       if (cls === 'temp-crit') {
-        data.temps_fuera.push({ equipo, temp, rango, estado: 'critico' });
+        data.temps_fuera.push({ equipo, temp: temp.includes('°') ? temp : temp + '°C', rango, estado: 'critico' });
       } else if (cls === 'temp-warn') {
-        data.temps_limite.push({ equipo, temp, rango });
+        data.temps_limite.push({ equipo, temp: temp.includes('°') ? temp : temp + '°C', rango });
       }
     }
-    // Also catch rows with inline style for critical temps (BC2 format)
+    // Also catch rows with inline style for critical temps (BC2 old format)
     const critRowRe = /<tr[^>]*style="background:#1a0808"[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]*>)*\s*([^<]+?)\s*(?:<[^>]*>)*<\/td>\s*<td[^>]*class="temp-crit"[^>]*>([^<]+)/g;
     while ((tm = critRowRe.exec(tbl)) !== null) {
       const equipo = tm[1].trim();
       const temp = tm[2].trim();
-      // Avoid duplicates
       if (!data.temps_fuera.some(t => t.equipo === equipo)) {
-        data.temps_fuera.push({ equipo, temp, rango: '', estado: 'critico' });
+        data.temps_fuera.push({ equipo, temp: temp.includes('°') ? temp : temp + '°C', rango: '', estado: 'critico' });
       }
     }
   }
