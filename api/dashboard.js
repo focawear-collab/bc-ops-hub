@@ -419,20 +419,36 @@ function parseBriefingHTML(html) {
       }
     }
 
-    // Fallback: old format (single combined table, no local-card)
+    // Combined format: single table with optional BC1/BC2 badges in name cells
     if (!data.garzones_bc1.length && !data.garzones_bc2.length) {
-      const rowRe = /<tr[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]+>)*\s*(\d+)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*([^<]+?)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*\$([\d.,]+)/g;
-      let m;
-      while ((m = rowRe.exec(garzSection)) !== null && data.garzones.length < 8) {
-        const afterMatch = garzSection.substring(m.index + m[0].length);
-        const cuentasM = afterMatch.match(/<td[^>]*>\s*(?:<[^>]+>)*\s*(\d+)/);
-        const ticketM = afterMatch.match(/<td[^>]*>\s*(?:<[^>]+>)*\s*\$([\d.,]+)/);
+      const trRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+      let trMatch;
+      while ((trMatch = trRe.exec(garzSection)) !== null && data.garzones.length < 10) {
+        const row = trMatch[1];
+        const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+        const cells = [];
+        let tdM;
+        while ((tdM = tdRe.exec(row)) !== null) cells.push(tdM[1]);
+        if (cells.length < 3) continue;
+
+        const rankText = cells[0].replace(/<[^>]+>/g, '').trim();
+        const rank = parseInt(rankText);
+        if (isNaN(rank)) continue;
+
+        // Extract local from badge span (BC1 or BC2)
+        const localM = cells[1].match(/>\s*(BC[12])\s*</);
+        const local = localM ? localM[1] : '';
+        const name = cells[1].replace(/<[^>]+>/g, '').trim();
+
+        const ventasText = cells[2] ? cells[2].replace(/<[^>]+>/g, '').replace(/[^\d]/g, '') : '0';
+        const cuentasText = cells[3] ? cells[3].replace(/<[^>]+>/g, '').replace(/[^\d]/g, '') : '0';
+        const ticketText = cells[4] ? cells[4].replace(/<[^>]+>/g, '').replace(/[^\d.,\s]/g, '').replace(/\./g, '').replace(',','').trim() : '0';
+
         data.garzones.push({
-          rank: parseInt(m[1]),
-          name: m[2].replace(/<[^>]+>/g, '').trim(),
-          ventas: parseInt(m[3].replace(/\./g, '').replace(',', '')),
-          cuentas: cuentasM ? parseInt(cuentasM[1]) : 0,
-          ticket: ticketM ? parseInt(ticketM[1].replace(/\./g, '').replace(',', '')) : 0,
+          rank, name, local,
+          ventas: parseInt(ventasText) || 0,
+          cuentas: parseInt(cuentasText) || 0,
+          ticket: parseInt(ticketText) || 0,
         });
       }
     }
