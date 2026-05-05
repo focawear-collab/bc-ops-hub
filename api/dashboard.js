@@ -438,7 +438,7 @@ function parseBriefingHTML(html) {
         // Extract local from badge span (BC1 or BC2)
         const localM = cells[1].match(/>\s*(BC[12])\s*</);
         const local = localM ? localM[1] : '';
-        const name = cells[1].replace(/<[^>]+>/g, '').trim();
+        const name = cells[1].replace(/<span[^>]*>.*?<\/span>/gi, '').replace(/<[^>]+>/g, '').trim();
 
         const ventasText = cells[2] ? cells[2].replace(/<[^>]+>/g, '').replace(/[^\d]/g, '') : '0';
         const cuentasText = cells[3] ? cells[3].replace(/<[^>]+>/g, '').replace(/[^\d]/g, '') : '0';
