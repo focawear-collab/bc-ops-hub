@@ -263,46 +263,34 @@ function parseCheckRocket(html) {
 function parseBriefingHTML(html) {
   const data = { top_productos: [], garzones: [], medios_pago: [] };
 
-  // Top productos: extract from ranking table
-  // Pattern: product rows with name, units, revenue
-  const prodSection = extractSection(html, 'RANKING', 'CURVA');
-  if (prodSection) {
-    const rowRe = /<tr[^>]*>\s*<td[^>]*>(\d+)<\/td>\s*<td[^>]*>([^<]+)<\/td>\s*<td[^>]*>(\d+)<\/td>\s*<td[^>]*>\$?([\d.,]+)/gi;
-    let m;
-    while ((m = rowRe.exec(prodSection)) !== null && data.top_productos.length < 10) {
-      data.top_productos.push({
-        rank: parseInt(m[1]),
-        name: m[2].trim(),
-        units: parseInt(m[3]),
-        revenue: parseInt(m[4].replace(/\./g, '').replace(',', '')),
-      });
-    }
-  }
-
-  // Garzones: extract from garzones table
-  const garzSection = extractSection(html, 'GARZ', 'ANULA');
+  // Garzones: section "RANKING GARZONES" — rows with <td><span..>N</span></td><td><strong>Name</strong></td><td class="num">$X</td><td class="num">N</td><td class="num">$X</td>
+  const garzSection = extractSection(html, 'RANKING GARZ', 'CHECK');
   if (garzSection) {
-    const rowRe = /<tr[^>]*>\s*<td[^>]*>(\d+)<\/td>\s*<td[^>]*>([^<]+)<\/td>\s*<td[^>]*>\$?([\d.,]+)<\/td>\s*<td[^>]*>(\d+)<\/td>\s*<td[^>]*>\$?([\d.,]+)/gi;
+    const rowRe = /<tr[^>]*>[\s\S]*?<td[^>]*>(?:<[^>]+>)*\s*(\d+)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*([^<]+?)\s*(?:<[^>]+>)*<\/td>\s*<td[^>]*>(?:<[^>]+>)*\s*\$([\d.,]+)/g;
     let m;
     while ((m = rowRe.exec(garzSection)) !== null && data.garzones.length < 8) {
+      // Extract cuentas and ticket from remaining cells
+      const afterMatch = garzSection.substring(m.index + m[0].length);
+      const cuentasM = afterMatch.match(/<td[^>]*>\s*(?:<[^>]+>)*\s*(\d+)/);
+      const ticketM = afterMatch.match(/<td[^>]*>\s*(?:<[^>]+>)*\s*\$([\d.,]+)/);
       data.garzones.push({
         rank: parseInt(m[1]),
-        name: m[2].trim(),
+        name: m[2].replace(/<[^>]+>/g, '').trim(),
         ventas: parseInt(m[3].replace(/\./g, '').replace(',', '')),
-        cuentas: parseInt(m[4]),
-        ticket: parseInt(m[5].replace(/\./g, '').replace(',', '')),
+        cuentas: cuentasM ? parseInt(cuentasM[1]) : 0,
+        ticket: ticketM ? parseInt(ticketM[1].replace(/\./g, '').replace(',', '')) : 0,
       });
     }
   }
 
-  // Medios de pago: extract from medios section
-  const mediosSection = extractSection(html, 'MEDIOS', 'CHECK');
+  // Medios de pago: section "MEDIOS DE PAGO" — bar-row divs with bar-label, bar-val
+  const mediosSection = extractSection(html, 'MEDIOS DE PAGO', 'RANKING GARZ');
   if (mediosSection) {
-    const rowRe = /([A-Za-zÁÉÍÓÚáéíóúñÑ\s/]+)\s*(?:<[^>]+>)?\s*\$?([\d.,]+)\s*(?:<[^>]+>)?\s*\((\d+(?:[.,]\d+)?%)\)/gi;
+    const barRe = /bar-label[^>]*>([^<]+)<[\s\S]*?<strong>\$([\d.,]+)<\/strong>\s*<span[^>]*>([\d.,]+%)/g;
     let m;
-    while ((m = rowRe.exec(mediosSection)) !== null) {
-      const name = m[1].trim();
-      if (name.length > 2 && name.length < 40) {
+    while ((m = barRe.exec(mediosSection)) !== null) {
+      const name = m[1].replace(/[🟣🟦🔵🏦📲🟢💵🔴⚪]/g, '').trim();
+      if (name.length > 1) {
         data.medios_pago.push({
           metodo: name,
           monto: parseInt(m[2].replace(/\./g, '').replace(',', '')),
@@ -328,7 +316,7 @@ function extractSection(html, startMarker, endMarker) {
 
 function parseEstimado(data) {
   if (!data) return null;
-  // If it's already structured JSON from the automation
+  // If it's the purchase order format with items/orders
   if (data.items || data.orders) {
     return {
       fecha: data.fecha || data.date || null,
@@ -348,7 +336,9 @@ function parseEstimado(data) {
       })),
     };
   }
-  return data; // return raw if unrecognized structure
+  // Raw sales data (by_product_per_day) — not a purchase forecast, skip
+  if (data.by_product_per_day) return null;
+  return null;
 }
 
 // ── Meta mensual ────────────────────────────────────────────────────
