@@ -48,9 +48,14 @@ module.exports = async function handler(req, res) {
         total_presencial: weekly.total_presencial,
         prev_total_presencial: weekly.prev_total_presencial,
         stores: (weekly.stores || []).map(s => ({
-          store_name: s.store_name,
-          total_presencial: s.total_presencial,
-          kpis: s.kpis,
+          store_name: s.store || s.store_name,
+          total_presencial: s.totals?.sales || s.total_presencial,
+          kpis: Object.fromEntries(
+            (s.products || []).map(p => [p.name, {
+              actual: p.units, benchmark: p.benchmark,
+              prev: p.prev_units, gap: p.gap_vs_meta,
+            }])
+          ),
         })),
       } : null,
       timestamp: new Date().toISOString(),
