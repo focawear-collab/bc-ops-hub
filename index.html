@@ -1666,48 +1666,126 @@
       </div>`;
     }
 
-    // ── Section 8: KPIs Semanales ──
+    // ── Section 8: Comparativa Semanal Completa ──
     if (w && w.stores?.length) {
       const delta = w.prev_total_presencial ? ((w.total_presencial / w.prev_total_presencial - 1) * 100) : null;
       const deltaStr = delta != null ? (delta >= 0 ? '+' : '') + delta.toFixed(1) + '%' : '';
+      const dBadge = (d) => d == null ? '' : `<span class="kpi-badge ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '+' : ''}${d.toFixed(1)}%</span>`;
 
       html += `
       <div class="dash-section">
-        <div class="dash-section-title">KPIs SEMANALES — Semana ${w.week_num} (${w.start_date} a ${w.end_date})</div>
+        <div class="dash-section-title">COMPARATIVA SEMANAL — Sem ${w.week_num} (${w.start_date} a ${w.end_date})</div>
         <div class="kpi-card" style="margin-bottom:12px">
           <div class="kpi-sub">
             Total presencial: <span style="color:#fff;font-weight:600">$${$(w.total_presencial)}</span>
-            ${deltaStr ? `<span class="kpi-badge ${delta >= 0 ? 'up' : 'down'}">${deltaStr} vs anterior</span>` : ''}
+            <span style="color:#888;margin:0 6px">vs</span>$${$(w.prev_total_presencial)}
+            ${deltaStr ? `<span class="kpi-badge ${delta >= 0 ? 'up' : 'down'}">${deltaStr}</span>` : ''}
           </div>
-        </div>
-        <div class="dash-grid-2">`;
+        </div>`;
 
+      // Top 10 by revenue + Top 10 by quantity
+      if (w.top_by_revenue?.length || w.top_by_quantity?.length) {
+        html += `<div class="dash-grid-2">`;
+
+        if (w.top_by_revenue?.length) {
+          html += `<div class="kpi-card">
+            <div class="kpi-label">Top 10 por Monto</div>
+            <table class="kpi-table">
+              <thead><tr><th>#</th><th>Producto</th><th>Actual</th><th>Anterior</th><th>Δ</th></tr></thead>
+              <tbody>`;
+          w.top_by_revenue.forEach((p, i) => {
+            html += `<tr>
+              <td>${i + 1}</td>
+              <td style="color:#fff">${p.name}</td>
+              <td>$${$(p.current)}</td>
+              <td style="color:#888">$${$(p.previous)}</td>
+              <td>${dBadge(p.delta_pct)}</td>
+            </tr>`;
+          });
+          html += `</tbody></table></div>`;
+        }
+
+        if (w.top_by_quantity?.length) {
+          html += `<div class="kpi-card">
+            <div class="kpi-label">Top 10 por Cantidad</div>
+            <table class="kpi-table">
+              <thead><tr><th>#</th><th>Producto</th><th>Actual</th><th>Anterior</th><th>Δ</th></tr></thead>
+              <tbody>`;
+          w.top_by_quantity.forEach((p, i) => {
+            html += `<tr>
+              <td>${i + 1}</td>
+              <td style="color:#fff">${p.name}</td>
+              <td>${p.current}</td>
+              <td style="color:#888">${p.previous}</td>
+              <td>${dBadge(p.delta_pct)}</td>
+            </tr>`;
+          });
+          html += `</tbody></table></div>`;
+        }
+        html += `</div>`;
+      }
+
+      // Garzones + Canales
+      if (w.weekly_garzones?.length || w.weekly_channels?.length) {
+        html += `<div class="dash-grid-2">`;
+
+        if (w.weekly_garzones?.length) {
+          html += `<div class="kpi-card">
+            <div class="kpi-label">Garzones — Semana</div>
+            <table class="garzon-table">
+              <thead><tr><th>#</th><th>Nombre</th><th>Ventas</th><th>Anterior</th><th>Δ</th></tr></thead>
+              <tbody>`;
+          w.weekly_garzones.forEach((g, i) => {
+            html += `<tr>
+              <td>${i + 1}</td>
+              <td>${g.name}${g.local ? ` <span style="color:#666;font-size:10px">${g.local}</span>` : ''}</td>
+              <td>$${$(g.sales)}</td>
+              <td style="color:#888">$${$(g.prev_sales)}</td>
+              <td>${dBadge(g.delta_pct)}</td>
+            </tr>`;
+          });
+          html += `</tbody></table></div>`;
+        }
+
+        if (w.weekly_channels?.length) {
+          html += `<div class="kpi-card">
+            <div class="kpi-label">Canales — Semana</div>
+            <table class="kpi-table">
+              <thead><tr><th>Canal</th><th>Ventas</th><th>%</th><th>Anterior</th><th>Δ</th></tr></thead>
+              <tbody>`;
+          w.weekly_channels.forEach(ch => {
+            html += `<tr>
+              <td style="color:#fff">${ch.name}</td>
+              <td>$${$(ch.sales)}</td>
+              <td>${ch.pct}%</td>
+              <td style="color:#888">$${$(ch.prev_sales)}</td>
+              <td>${dBadge(ch.delta_pct)}</td>
+            </tr>`;
+          });
+          html += `</tbody></table></div>`;
+        }
+        html += `</div>`;
+      }
+
+      // KPIs por local (mantener como referencia compacta)
+      html += `<div class="dash-grid-2">`;
       w.stores.forEach(store => {
         if (!store.kpis) return;
-        html += `
-          <div class="kpi-card">
-            <div class="kpi-label">${store.store_name} — $${$(store.total_presencial)}</div>
+        html += `<div class="kpi-card">
+            <div class="kpi-label">${store.store_name} — KPIs Específicos</div>
             <table class="kpi-table">
               <thead><tr><th>Producto</th><th>Actual</th><th>Bench</th><th>Δ</th></tr></thead>
               <tbody>`;
-
         Object.entries(store.kpis).forEach(([name, kpi]) => {
           const actual = kpi.actual ?? kpi.total ?? 0;
           const bench = kpi.benchmark ?? 0;
           const diff = bench > 0 ? actual - bench : 0;
           const cls = diff >= 0 ? 'val-up' : 'val-down';
           const sign = diff >= 0 ? '+' : '';
-          html += `<tr>
-            <td>${name}</td>
-            <td style="color:#fff">${actual}</td>
-            <td>${bench}</td>
-            <td class="${cls}">${sign}${diff}</td>
-          </tr>`;
+          html += `<tr><td>${name}</td><td style="color:#fff">${actual}</td><td>${bench}</td><td class="${cls}">${sign}${diff}</td></tr>`;
         });
-
         html += `</tbody></table></div>`;
       });
-
       html += `</div></div>`;
     }
 
