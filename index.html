@@ -1221,6 +1221,14 @@
 
     let html = '';
 
+    // Timestamp
+    if (data.timestamp) {
+      const ts = new Date(data.timestamp);
+      const ago = Math.round((Date.now() - ts.getTime()) / 60000);
+      const agoTxt = ago < 1 ? 'ahora' : ago < 60 ? `hace ${ago} min` : `hace ${Math.round(ago/60)}h`;
+      html += `<div style="text-align:right;font-family:var(--mono);font-size:10px;color:#555;margin-bottom:8px;letter-spacing:0.5px">Última actualización: ${agoTxt}</div>`;
+    }
+
     // ── Section 0: Score Operacional + Meta Mensual (top row) ──
     html += `<div class="dash-section"><div class="dash-grid" style="grid-template-columns: 260px 1fr; gap: 16px;">`;
 
@@ -1336,15 +1344,33 @@
           <div class="spark-wrap">
             <div class="spark-header">
               <div class="kpi-label" style="margin:0">Tendencia 7 Días</div>
-              <div class="kpi-sub" style="margin:0">Prom: <span style="color:var(--gold)">$${$(Math.round(avg))}</span></div>
+              <div class="kpi-sub" style="margin:0">Prom: <span style="color:var(--gold)">$${$(Math.round(avg))}</span>
+                <span style="margin-left:12px;font-size:9px;color:#555">
+                  <span style="color:rgba(212,168,67,0.5)">━</span> BC1
+                  <span style="color:rgba(96,165,250,0.5);margin-left:6px">━</span> BC2
+                </span>
+              </div>
             </div>
             <svg class="spark-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
               <line x1="${pad}" y1="${avgY}" x2="${w-pad}" y2="${avgY}" stroke="rgba(212,168,67,0.2)" stroke-width="1" stroke-dasharray="4"/>
+              ${(() => {
+                // BC1 sub-line (gold, thin)
+                const bc1Vals = tr.map(t => t.bc1 || 0);
+                const bc1Pts = bc1Vals.map((v, i) => `${pad + i * step},${h - pad - ((v - minV) / (maxV - minV || 1)) * (h - pad * 2)}`).join(' ');
+                // BC2 sub-line (blue, thin)
+                const bc2Vals = tr.map(t => t.bc2 || 0);
+                const bc2Pts = bc2Vals.map((v, i) => `${pad + i * step},${h - pad - ((v - minV) / (maxV - minV || 1)) * (h - pad * 2)}`).join(' ');
+                const hasSub = bc1Vals.some(v => v > 0) && bc2Vals.some(v => v > 0);
+                return hasSub ? `<polyline points="${bc1Pts}" fill="none" stroke="rgba(212,168,67,0.35)" stroke-width="1" stroke-linejoin="round" stroke-dasharray="3"/>
+                <polyline points="${bc2Pts}" fill="none" stroke="rgba(96,165,250,0.35)" stroke-width="1" stroke-linejoin="round" stroke-dasharray="3"/>` : '';
+              })()}
               <polyline points="${points}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round"/>
               ${vals.map((v, i) => {
+                const bc1v = tr[i]?.bc1; const bc2v = tr[i]?.bc2;
+                const tip = `$${$(v)}${bc1v ? ' (BC1 $' + $(bc1v) + ')' : ''}${bc2v ? ' (BC2 $' + $(bc2v) + ')' : ''}`;
                 const x = pad + i * step;
                 const y = h - pad - ((v - minV) / (maxV - minV || 1)) * (h - pad * 2);
-                return `<circle cx="${x}" cy="${y}" r="4" fill="var(--gold)" stroke="var(--bg)" stroke-width="1.5"><title>$${$(v)}</title></circle>`;
+                return `<circle cx="${x}" cy="${y}" r="4" fill="var(--gold)" stroke="var(--bg)" stroke-width="1.5"><title>${tip}</title></circle>`;
               }).join('')}
             </svg>
             <div class="spark-labels">
