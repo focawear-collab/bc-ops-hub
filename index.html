@@ -1605,16 +1605,25 @@
         html += renderGarzonTable(bd.garzones_bc2, 'BC2', '#60a5fa');
         html += `</div>`;
       } else if (bd.garzones?.length) {
-        // Legacy combined format
+        // Combined format with local badges
         html += `<div class="kpi-card">
             <div class="kpi-label">Garzones</div>
             <table class="garzon-table">
               <thead><tr><th>#</th><th>Nombre</th><th>Ventas</th><th>Ctas</th><th>Ticket</th></tr></thead>
               <tbody>`;
         bd.garzones.forEach(g => {
-          html += `<tr><td>${g.rank}</td><td>${g.name}</td><td>$${$(g.ventas)}</td><td>${g.cuentas}</td><td>$${$(g.ticket)}</td></tr>`;
+          const badge = g.local === 'BC1' ? '<span style="background:var(--gold);color:#000;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;margin-right:4px">BC1</span>'
+                      : g.local === 'BC2' ? '<span style="background:#3b82f6;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;margin-right:4px">BC2</span>'
+                      : '';
+          html += `<tr><td>${g.rank}</td><td>${badge}${g.name}</td><td>$` + '${' + '$(g.ventas)}' + `</td><td>${g.cuentas}</td><td>$` + '${' + '$(g.ticket)}' + `</td></tr>`;
         });
-        html += `</tbody></table></div>`;
+        // Totals per local
+        const bc1t = bd.garzones.filter(g => g.local === 'BC1').reduce((s, g) => s + g.ventas, 0);
+        const bc2t = bd.garzones.filter(g => g.local === 'BC2').reduce((s, g) => s + g.ventas, 0);
+        const totalNote = bc1t && bc2t ? ` (BC1 $` + '${' + '$(bc1t)}' + ` + BC2 $` + '${' + '$(bc2t)}' + `)` : '';
+        html += `</tbody></table>
+          <div style="font-size:11px;color:#888;padding:4px 8px;text-align:right">Total: $` + '${' + '$(bc1t + bc2t)}' + `${totalNote}</div>
+          </div>`;
       }
 
       html += `</div>`;
