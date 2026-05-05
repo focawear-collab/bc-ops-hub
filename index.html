@@ -1287,6 +1287,10 @@
             <div class="kpi-sub">BC2: $${(mm.meta_bc2/1e6).toFixed(0)}M</div>
             <div class="kpi-sub" style="color:${acumPct >= parseFloat(dayPct) ? 'var(--green)' : 'var(--red)'}">${acumPct >= parseFloat(dayPct) ? '▲ Sobre ritmo' : '▼ Bajo ritmo'}</div>
           </div>
+          ${mm.projected ? `<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
+            <div class="kpi-sub" style="margin-bottom:6px"><span style="color:${mm.will_hit_meta ? 'var(--green)' : 'var(--red)'}">Proyección: $${(mm.projected/1e6).toFixed(1)}M (${mm.projected_pct}% de meta)</span></div>
+            <div style="font-size:10px;color:#888">Al ritmo actual llegarías a $${(mm.projected/1e6).toFixed(1)}M</div>
+          </div>` : ''}
         </div>`;
     } else {
       html += `<div class="kpi-card"><div class="kpi-label">Meta Mensual</div><div class="no-data" style="border:none;background:none">Sin datos</div></div>`;
@@ -1299,6 +1303,9 @@
       const metaBadge = d.meta_diaria_pct >= 100 ? 'up' : d.meta_diaria_pct >= 85 ? 'neutral' : 'down';
       const metaIcon = d.meta_diaria_pct >= 100 ? '▲' : d.meta_diaria_pct >= 85 ? '—' : '▼';
 
+      const deltaBadge = bd?.delta_ventas_pct ? (bd.delta_ventas_pct >= 0 ? 'green' : 'red') : '';
+      const deltaText = bd?.delta_ventas_pct && bd?.prev_day_label ? `vs ${bd.prev_day_label}: ${bd.delta_ventas_pct >= 0 ? '+' : ''}${bd.delta_ventas_pct.toFixed(1)}%` : '';
+
       html += `
         <div class="dash-section">
           <div class="dash-section-title">VENTAS DEL DÍA ${d.fecha ? '— ' + d.fecha : ''}</div>
@@ -1309,6 +1316,7 @@
               <div class="kpi-sub">
                 ${pct(d.meta_pct)} de meta mensual
                 <span class="kpi-badge ${metaBadge}">${metaIcon} ${pct(d.meta_diaria_pct)} meta diaria</span>
+                ${deltaText ? `<span class="kpi-badge ${deltaBadge}" style="margin-left:6px">${deltaText}</span>` : ''}
               </div>
             </div>
             <div class="kpi-card">
@@ -1340,12 +1348,17 @@
         const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
         const avgY = h - pad - ((avg - minV) / (maxV - minV || 1)) * (h - pad * 2);
 
+        // Calculate average ticket from trends data
+        const totalVentas = vals.reduce((a, b) => a + b, 0);
+        const totalCuentas = tr.reduce((sum, t) => sum + (t.cuentas || 0), 0);
+        const avgTicket = totalCuentas > 0 ? Math.round(totalVentas / totalCuentas) : null;
+
         html += `
         <div class="dash-section">
           <div class="spark-wrap">
             <div class="spark-header">
               <div class="kpi-label" style="margin:0">Tendencia 7 Días</div>
-              <div class="kpi-sub" style="margin:0">Prom: <span style="color:var(--gold)">$${$(Math.round(avg))}</span>
+              <div class="kpi-sub" style="margin:0">Prom: <span style="color:var(--gold)">$${$(Math.round(avg))}</span>${avgTicket ? ` · Ticket: <span style="color:#888">$${$(avgTicket)}</span>` : ''}
                 <span style="margin-left:12px;font-size:9px;color:#555">
                   <span style="color:rgba(212,168,67,0.5)">━</span> BC1
                   <span style="color:rgba(96,165,250,0.5);margin-left:6px">━</span> BC2
@@ -1413,8 +1426,13 @@
       }
 
       // ── Section 3: Alertas ──
-      if (d.alertas.length || d.positivo.length) {
+      const hasAnulacionAlert = (d.cancelled_count > 5) || (d.cancel_total > 100000);
+      if (d.alertas.length || d.positivo.length || hasAnulacionAlert) {
         html += `<div class="dash-section"><div class="dash-section-title">ALERTAS DEL DÍA</div>`;
+        if (hasAnulacionAlert) {
+          const anulMsg = `Anulaciones: ${d.cancelled_count ? d.cancelled_count + ' órdenes' : ''} ${d.cancel_total ? '($' + $(d.cancel_total) + ')' : ''}`.trim();
+          html += `<div class="alert-item alert-red">⚠️ ${anulMsg}</div>`;
+        }
         d.alertas.forEach(a => { html += `<div class="alert-item alert-red">🔴 ${a}</div>`; });
         d.positivo.forEach(p => { html += `<div class="alert-item alert-green">✅ ${p}</div>`; });
         html += `</div>`;
