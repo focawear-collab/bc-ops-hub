@@ -1205,6 +1205,7 @@
 
   function $(n) { return n != null ? n.toLocaleString('es-CL') : '—'; }
   function pct(n) { return n != null ? n.toFixed(1) + '%' : '—'; }
+  function fmtDate(s) { if (!s) return s; const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']; const p = s.split('-'); return p.length === 3 ? `${parseInt(p[2])} ${meses[parseInt(p[1])-1]}` : s; }
 
   function renderDashboard(data) {
     const el = document.getElementById('dash-content');
@@ -1646,7 +1647,7 @@
           const badge = g.local === 'BC1' ? '<span style="background:var(--gold);color:#000;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;margin-right:4px">BC1</span>'
                       : g.local === 'BC2' ? '<span style="background:#3b82f6;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;margin-right:4px">BC2</span>'
                       : '';
-          html += `<tr><td>${g.rank}</td><td>${badge}${g.name}</td><td>$${$(g.ventas)}</td><td>${g.cuentas}</td><td>$${$(g.ticket)}</td></tr>`;
+          html += `<tr><td>${g.rank}</td><td>${badge} ${g.name}</td><td>$${$(g.ventas)}</td><td>${g.cuentas}</td><td>$${$(g.ticket)}</td></tr>`;
         });
         // Totals per local
         const bc1t = bd.garzones.filter(g => g.local === 'BC1').reduce((s, g) => s + g.ventas, 0);
@@ -1714,7 +1715,7 @@
 
       html += `
       <div class="dash-section">
-        <div class="dash-section-title">COMPARATIVA SEMANAL — Sem ${w.week_num} (${w.start_date} a ${w.end_date})</div>
+        <div class="dash-section-title">COMPARATIVA SEMANAL — Sem ${w.week_num} (${fmtDate(w.start_date)} al ${fmtDate(w.end_date)})</div>
         <div class="kpi-card" style="margin-bottom:12px">
           <div class="kpi-sub">
             Total presencial: <span style="color:#fff;font-weight:600">$${$(w.total_presencial)}</span>
