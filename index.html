@@ -532,6 +532,29 @@
       to   { opacity: 0; transform: translateX(20px); }
     }
 
+    /* ── Section groups ── */
+    .section-group { margin-bottom: 48px; }
+    .section-group:last-child { margin-bottom: 0; }
+    .section-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 10px; font-weight: 600;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 20px; margin-bottom: 20px;
+    }
+    .pill-diario   { background: rgba(74,222,128,0.1);  color: var(--green);  border: 1px solid rgba(74,222,128,0.25); }
+    .pill-semanal  { background: rgba(96,165,250,0.1);  color: var(--blue);   border: 1px solid rgba(96,165,250,0.25); }
+    .pill-mensual  { background: rgba(212,168,67,0.12); color: var(--gold);   border: 1px solid rgba(212,168,67,0.25); }
+    .pill-desactivado { background: rgba(255,255,255,0.04); color: #555; border: 1px solid #222; }
+    .section-pill::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor;
+    }
+    .pill-diario::before   { box-shadow: 0 0 5px var(--green); animation: pulse-dot 2s ease-in-out infinite; }
+    .section-divider {
+      border: none; border-top: 1px solid var(--border);
+      margin: 0 0 40px;
+    }
+
     /* ── Error state ── */
     .error-state {
       text-align: center;
@@ -560,33 +583,34 @@
     </div>
   </header>
 
-  <div class="section-header">
-    <span class="section-label">WORKFLOWS</span>
-    <span class="section-count" id="wf-count">cargando...</span>
-  </div>
-
-  <div class="grid" id="grid">
+  <div id="sections-container">
     <!-- Skeletons mientras carga -->
-    <div class="card card-skeleton">
-      <div class="card-top"><div class="skeleton" style="width:36px;height:36px;border-radius:8px"></div></div>
-      <div class="card-name skeleton"></div>
-      <div class="card-desc skeleton"></div>
-      <div class="card-desc skeleton"></div>
-      <div class="card-footer"><div class="btn-trigger skeleton"></div></div>
+    <div class="section-header">
+      <span class="section-label">WORKFLOWS</span>
+      <span class="section-count" id="wf-count">cargando...</span>
     </div>
-    <div class="card card-skeleton">
-      <div class="card-top"><div class="skeleton" style="width:36px;height:36px;border-radius:8px"></div></div>
-      <div class="card-name skeleton"></div>
-      <div class="card-desc skeleton"></div>
-      <div class="card-desc skeleton"></div>
-      <div class="card-footer"><div class="btn-trigger skeleton"></div></div>
-    </div>
-    <div class="card card-skeleton">
-      <div class="card-top"><div class="skeleton" style="width:36px;height:36px;border-radius:8px"></div></div>
-      <div class="card-name skeleton"></div>
-      <div class="card-desc skeleton"></div>
-      <div class="card-desc skeleton"></div>
-      <div class="card-footer"><div class="btn-trigger skeleton"></div></div>
+    <div class="grid">
+      <div class="card card-skeleton">
+        <div class="card-top"><div class="skeleton" style="width:36px;height:36px;border-radius:8px"></div></div>
+        <div class="card-name skeleton"></div>
+        <div class="card-desc skeleton"></div>
+        <div class="card-desc skeleton"></div>
+        <div class="card-footer"><div class="btn-trigger skeleton"></div></div>
+      </div>
+      <div class="card card-skeleton">
+        <div class="card-top"><div class="skeleton" style="width:36px;height:36px;border-radius:8px"></div></div>
+        <div class="card-name skeleton"></div>
+        <div class="card-desc skeleton"></div>
+        <div class="card-desc skeleton"></div>
+        <div class="card-footer"><div class="btn-trigger skeleton"></div></div>
+      </div>
+      <div class="card card-skeleton">
+        <div class="card-top"><div class="skeleton" style="width:36px;height:36px;border-radius:8px"></div></div>
+        <div class="card-name skeleton"></div>
+        <div class="card-desc skeleton"></div>
+        <div class="card-desc skeleton"></div>
+        <div class="card-footer"><div class="btn-trigger skeleton"></div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -620,67 +644,105 @@
 
 <script>
   // ── Metadata de workflows ──────────────────────────────────────────
+  // category: 'diario' | 'semanal' | 'mensual' | 'desactivado'
   const WORKFLOW_META = {
+    // ── DIARIOS ──────────────────────────────────────────────────────
     'Briefing Diario BlackChicken': {
-      icon: '◉',
+      icon: '◉', category: 'diario',
       desc: 'Ventas, canales, productos top, checklists y alertas del día anterior',
-      schedule: 'Diario · 03:00',
-      frequency: 'Diario',
-      cron: true,
-      hasDateInput: true,
+      schedule: '07:30 Chile', cron: true, hasDateInput: true,
     },
     'Análisis Diario CheckRocket': {
-      icon: '✓',
+      icon: '✓', category: 'diario',
       desc: 'Checklists BC1 y BC2: cumplimiento, temperaturas, merma y no-cumple',
-      schedule: 'Diario · 04:00',
-      frequency: 'Diario',
-      cron: true,
-      hasDateInput: true,
+      schedule: '07:40 Chile', cron: true, hasDateInput: true,
     },
     'Cuadratura Diaria BlackChicken': {
-      icon: '⊞',
+      icon: '⊞', category: 'diario',
       desc: 'Cruza ventas Justo vs compras Ruka — genera Excel + reporte HTML',
-      schedule: 'Diario · 09:00',
-      frequency: 'Diario',
-      cron: true,
-      hasDateInput: true,
+      schedule: '07:50 Chile', cron: true, hasDateInput: true,
     },
+    'Reviews Diario — Google + Uber Eats': {
+      icon: '⭐', category: 'diario',
+      desc: 'Google Reviews (Apify) + Uber Eats Reviews (Notion) — HTML unificado con semáforo',
+      schedule: '08:40 Chile', cron: true, hasDateInput: true,
+    },
+    'Briefing Matutino → Telegram': {
+      icon: '✈', category: 'diario',
+      desc: 'Envía resumen del briefing al canal de Telegram a las 07:30',
+      schedule: '07:30 Chile', cron: true, hasDateInput: false,
+    },
+    'Vigía de Ventas → Telegram': {
+      icon: '👁', category: 'diario',
+      desc: 'Alerta nocturna en Telegram si las ventas del día están bajo el 90% del objetivo',
+      schedule: '22:00 Chile', cron: true, hasDateInput: false,
+    },
+    'Patrulla CheckRocket → Telegram': {
+      icon: '🛡', category: 'diario',
+      desc: 'Envía anomalías de checklists al canal de Telegram. Silencioso si todo OK',
+      schedule: '23:30 Chile', cron: true, hasDateInput: false,
+    },
+    // ── SEMANALES ─────────────────────────────────────────────────────
     'Reporte Semanal BlackChicken': {
-      icon: '≡',
+      icon: '≡', category: 'semanal',
       desc: 'Resumen semanal de ventas, productos, operaciones y KPIs',
-      schedule: 'Lunes · 09:00',
-      frequency: 'Semanal',
-      cron: true,
-      hasDateInput: false,
+      schedule: 'Lunes · 08:00 Chile', cron: true, hasDateInput: false,
     },
     'Ventas Semanales BlackChicken': {
-      icon: '▲',
-      desc: 'Infografías semanales de ventas por producto y local + WhatsApp',
-      schedule: 'Solo manual',
-      cron: false,
-      hasDateInput: false,
+      icon: '▲', category: 'semanal',
+      desc: 'Infografías semanales de ventas por producto y local + mensaje WhatsApp',
+      schedule: 'Lunes · 08:10 Chile', cron: true, hasDateInput: true,
     },
+    'Estimado de Compra v2.1': {
+      icon: '📦', category: 'semanal',
+      desc: 'Estimado semanal de compras por ingrediente, proveedor y déficit de stock',
+      schedule: 'Lunes · 08:20 Chile', cron: true, hasDateInput: false,
+    },
+    'Reviews Uber Eats → Telegram': {
+      icon: '⭐', category: 'semanal',
+      desc: 'Resumen de reviews Uber Eats al canal de Telegram',
+      schedule: 'Solo manual', cron: false, hasDateInput: false,
+    },
+    // ── MENSUALES ─────────────────────────────────────────────────────
     'Reporte Mensual BlackChicken': {
-      icon: '◈',
-      desc: 'Reporte ejecutivo mensual con gráficos históricos BC1 y BC2',
-      schedule: 'Solo manual',
-      cron: false,
-      hasDateInput: false,
+      icon: '◈', category: 'mensual',
+      desc: 'Reporte ejecutivo mensual con YoY, top productos, compras Ruka e insights editoriales',
+      schedule: 'Día 1 · 08:30 Chile', cron: true, hasDateInput: false,
     },
+    // ── DESACTIVADOS ──────────────────────────────────────────────────
     'Validación Cruzada Semanal BlackChicken': {
-      icon: '⊗',
+      icon: '⊗', category: 'desactivado',
       desc: 'Valida coherencia entre ventas registradas y compras del período',
-      schedule: 'Solo manual',
-      cron: false,
-      hasDateInput: false,
+      schedule: 'Desactivado', cron: false, hasDateInput: false,
     },
     'Alertas Diarias BlackChicken': {
-      icon: '⚡',
+      icon: '⚡', category: 'desactivado',
       desc: 'Alertas automáticas cuando métricas operacionales salen de rango',
-      schedule: 'Solo manual',
-      cron: false,
-      hasDateInput: true,
+      schedule: 'Desactivado', cron: false, hasDateInput: true,
     },
+    'Envío Emails Matutinos': {
+      icon: '✉', category: 'desactivado',
+      desc: 'Enviador centralizado legacy — reemplazado por email por workflow',
+      schedule: 'Desactivado', cron: false, hasDateInput: true,
+    },
+    'Uber Eats Reviews — BC1': {
+      icon: '🟠', category: 'desactivado',
+      desc: 'Legacy — reemplazado por Reviews Diario (Google + Uber unificado)',
+      schedule: 'Desactivado', cron: false, hasDateInput: false,
+    },
+    'Google Reviews — Apify Scraper': {
+      icon: '🟢', category: 'desactivado',
+      desc: 'Legacy — reemplazado por Reviews Diario (Google + Uber unificado)',
+      schedule: 'Desactivado', cron: false, hasDateInput: false,
+    },
+  };
+
+  const SECTION_ORDER = ['diario', 'semanal', 'mensual', 'desactivado'];
+  const SECTION_LABELS = {
+    diario:      { label: 'Diarios',      pill: 'pill-diario' },
+    semanal:     { label: 'Semanales',    pill: 'pill-semanal' },
+    mensual:     { label: 'Mensuales',    pill: 'pill-mensual' },
+    desactivado: { label: 'Desactivados', pill: 'pill-desactivado' },
   };
 
   // ── State ──────────────────────────────────────────────────────────
@@ -698,12 +760,11 @@
       const workflows = await resp.json();
       renderWorkflows(workflows);
       document.getElementById('status-text').textContent = 'CONECTADO';
-      document.getElementById('wf-count').textContent = `${workflows.length} workflows`;
     } catch (err) {
       console.error(err);
       document.getElementById('status-text').textContent = 'ERROR';
-      document.getElementById('grid').innerHTML = `
-        <div class="error-state" style="grid-column:1/-1">
+      document.getElementById('sections-container').innerHTML = `
+        <div class="error-state">
           No se pudo conectar con GitHub Actions
           <p>${err.message}</p>
         </div>`;
@@ -714,49 +775,95 @@
 
   // ── Render ─────────────────────────────────────────────────────────
   function renderWorkflows(workflows) {
-    const grid = document.getElementById('grid');
-    grid.innerHTML = '';
+    const container = document.getElementById('sections-container');
+    container.innerHTML = '';
+
+    // Group by category
+    const grouped = { diario: [], semanal: [], mensual: [], desactivado: [], otros: [] };
 
     workflows.forEach(wf => {
-      const meta = WORKFLOW_META[wf.name] || {
-        icon: '◎',
-        desc: wf.path.replace('.github/workflows/', ''),
-        schedule: wf.state === 'active' ? 'Activo' : 'Inactivo',
-        cron: false,
-        hasDateInput: true,
-      };
-
-      const { statusClass, conclusionBadge } = getStatus(wf);
-      const lastRunHtml = getLastRunHtml(wf, meta);
-
-      const card = document.createElement('div');
-      card.className = `card ${statusClass}`;
-      card.innerHTML = `
-        <div class="card-top">
-          <div class="card-icon">${meta.icon}</div>
-          <div class="card-badges">
-            ${conclusionBadge}
-            <span class="badge ${meta.cron ? 'badge-cron' : 'badge-manual'}">
-              ${meta.cron ? '⏱ ' + meta.schedule : meta.schedule}
-            </span>
-          </div>
-        </div>
-        <div>
-          <div class="card-name">${cleanName(wf.name)}</div>
-          <div class="card-desc" style="margin-top:6px">${meta.desc}</div>
-        </div>
-        <div class="card-meta">
-          ${lastRunHtml}
-        </div>
-        <div class="card-footer">
-          <button class="btn-trigger" onclick="openModal(${wf.id}, '${escHtml(wf.name)}', '${escHtml(meta.desc)}', '${meta.icon}', ${meta.hasDateInput})">
-            ▶ Ejecutar
-          </button>
-          ${wf.lastRun?.url ? `<a class="btn-logs" href="${wf.lastRun.url}" target="_blank" title="Ver logs">↗</a>` : ''}
-        </div>
-      `;
-      grid.appendChild(card);
+      const meta = WORKFLOW_META[wf.name];
+      const cat = meta?.category || (wf.state === 'active' ? 'diario' : 'desactivado');
+      if (grouped[cat]) grouped[cat].push({ wf, meta });
+      else grouped.otros.push({ wf, meta });
     });
+
+    // Count active (non-desactivado)
+    const activeCount = (grouped.diario.length + grouped.semanal.length + grouped.mensual.length);
+    const totalCount  = workflows.length;
+
+    // Render sections in order
+    let sectionIdx = 0;
+    SECTION_ORDER.forEach(cat => {
+      const items = grouped[cat];
+      if (!items || items.length === 0) return;
+
+      const { label, pill } = SECTION_LABELS[cat];
+      const section = document.createElement('div');
+      section.className = 'section-group';
+
+      let cardsHtml = '';
+      items.forEach(({ wf, meta }, i) => {
+        const m = meta || {
+          icon: '◎', category: cat,
+          desc: wf.path?.replace('.github/workflows/', '') || '',
+          schedule: wf.state === 'active' ? 'Activo' : 'Desactivado',
+          cron: false, hasDateInput: true,
+        };
+
+        const { statusClass, conclusionBadge } = getStatus(wf);
+        const lastRunHtml = getLastRunHtml(wf, m);
+        const delay = (sectionIdx * 0.05).toFixed(2);
+        sectionIdx++;
+
+        const isDisabled = cat === 'desactivado';
+        const triggerBtn = isDisabled
+          ? `<button class="btn-trigger" disabled style="opacity:0.3;cursor:not-allowed">⊘ Desactivado</button>`
+          : `<button class="btn-trigger" onclick="openModal(${wf.id}, '${escHtml(wf.name)}', '${escHtml(m.desc)}', '${m.icon}', ${m.hasDateInput})">▶ Ejecutar</button>`;
+
+        cardsHtml += `
+          <div class="card ${statusClass}${isDisabled ? ' status-disabled' : ''}" style="animation-delay:${delay}s;${isDisabled ? 'opacity:0.55;' : ''}">
+            <div class="card-top">
+              <div class="card-icon">${m.icon}</div>
+              <div class="card-badges">
+                ${conclusionBadge}
+                <span class="badge ${m.cron ? 'badge-cron' : 'badge-manual'}">
+                  ${m.cron ? '⏱ ' + m.schedule : m.schedule}
+                </span>
+              </div>
+            </div>
+            <div>
+              <div class="card-name">${cleanName(wf.name)}</div>
+              <div class="card-desc" style="margin-top:6px">${m.desc}</div>
+            </div>
+            <div class="card-meta">${lastRunHtml}</div>
+            <div class="card-footer">
+              ${triggerBtn}
+              ${wf.lastRun?.url ? `<a class="btn-logs" href="${wf.lastRun.url}" target="_blank" title="Ver logs">↗</a>` : ''}
+            </div>
+          </div>`;
+      });
+
+      section.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <span class="section-pill ${pill}">${label}</span>
+          <span class="section-count" style="font-family:var(--mono);font-size:11px;color:#555">${items.length} workflow${items.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="grid">${cardsHtml}</div>`;
+
+      container.appendChild(section);
+
+      // Divider between sections (not after last)
+      if (cat !== 'desactivado') {
+        const hr = document.createElement('hr');
+        hr.className = 'section-divider';
+        container.appendChild(hr);
+      }
+    });
+
+    // Update header count
+    const statusEl = document.getElementById('status-text');
+    statusEl.textContent = `${activeCount} activos · ${totalCount} total`;
   }
 
   function cleanName(name) {
