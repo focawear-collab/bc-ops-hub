@@ -1312,7 +1312,7 @@
           <div class="dash-grid" style="grid-template-columns: 1.4fr 1fr 1fr;">
             <div class="kpi-card gold-accent">
               <div class="kpi-label">Ventas Totales</div>
-              <div class="kpi-value gold">${(d.ventas_total||0).toLocaleString('es-CL')}</div>
+              <div class="kpi-value gold">$${$(d.ventas_total)}</div>
               <div class="kpi-sub">
                 ${pct(d.meta_pct)} de meta mensual
                 <span class="kpi-badge ${metaBadge}">${metaIcon} ${pct(d.meta_diaria_pct)} meta diaria</span>
@@ -1321,13 +1321,13 @@
             </div>
             <div class="kpi-card">
               <div class="kpi-label">BC1 — El Plomo 5931</div>
-              <div class="kpi-value">${(d.bc1?.ventas||0).toLocaleString('es-CL')}</div>
-              <div class="kpi-sub">${$(d.bc1?.cuentas)} cuentas · ticket ${(d.bc1?.ticket||0).toLocaleString('es-CL')}</div>
+              <div class="kpi-value">$${$(d.bc1?.ventas)}</div>
+              <div class="kpi-sub">${$(d.bc1?.cuentas)} cuentas · ticket $${$(d.bc1?.ticket)}</div>
             </div>
             <div class="kpi-card">
               <div class="kpi-label">BC2 — El Plomo 5630</div>
-              <div class="kpi-value">${(d.bc2?.ventas||0).toLocaleString('es-CL')}</div>
-              <div class="kpi-sub">${$(d.bc2?.cuentas)} cuentas · ticket ${(d.bc2?.ticket||0).toLocaleString('es-CL')}</div>
+              <div class="kpi-value">$${$(d.bc2?.ventas)}</div>
+              <div class="kpi-sub">${$(d.bc2?.cuentas)} cuentas · ticket $${$(d.bc2?.ticket)}</div>
             </div>
           </div>
         </div>`;
@@ -1358,7 +1358,7 @@
           <div class="spark-wrap">
             <div class="spark-header">
               <div class="kpi-label" style="margin:0">Tendencia 7 Días</div>
-              <div class="kpi-sub" style="margin:0">Prom: <span style="color:var(--gold)">$${$(Math.round(avg))}</span>${avgTicket ? ` · Ticket: <span style="color:#888">${(avgTicket||0).toLocaleString('es-CL')}</span>` : ''}
+              <div class="kpi-sub" style="margin:0">Prom: <span style="color:var(--gold)">$${$(Math.round(avg))}</span>${avgTicket ? ` · Ticket: <span style="color:#888">$${$(avgTicket)}</span>` : ''}
                 <span style="margin-left:12px;font-size:9px;color:#555">
                   <span style="color:rgba(212,168,67,0.5)">━</span> BC1
                   <span style="color:rgba(96,165,250,0.5);margin-left:6px">━</span> BC2
@@ -1381,7 +1381,7 @@
               <polyline points="${points}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round"/>
               ${vals.map((v, i) => {
                 const bc1v = tr[i]?.bc1; const bc2v = tr[i]?.bc2;
-                const tip = `${(v||0).toLocaleString('es-CL')}${bc1v ? ' (BC1 $' + $(bc1v) + ')' : ''}${bc2v ? ' (BC2 $' + $(bc2v) + ')' : ''}`;
+                const tip = `$${$(v)}${bc1v ? ' (BC1 $' + $(bc1v) + ')' : ''}${bc2v ? ' (BC2 $' + $(bc2v) + ')' : ''}`;
                 const x = pad + i * step;
                 const y = h - pad - ((v - minV) / (maxV - minV || 1)) * (h - pad * 2);
                 return `<circle cx="${x}" cy="${y}" r="4" fill="var(--gold)" stroke="var(--bg)" stroke-width="1.5"><title>${tip}</title></circle>`;
@@ -1634,7 +1634,7 @@
           html += `<tr style="${rowStyle}">
             <td>${p.rank}</td>
             <td>${p.name}</td>
-            <td>$${(p.revenue||0).toLocaleString('es-CL')}</td>
+            <td>$${$(p.revenue)}</td>
             <td>${p.units}</td>
           </tr>`;
         });
@@ -1652,7 +1652,7 @@
               <td>${p.rank}</td>
               <td>${p.name}</td>
               <td>${p.units}</td>
-              <td style="color:#666">$${(p.revenue||0).toLocaleString('es-CL')}</td>
+              <td style="color:#666">$${$(p.revenue)}</td>
             </tr>`;
           });
           html += `</tbody></table></div>`;
@@ -1670,7 +1670,7 @@
             <td>${p.rank}</td>
             <td style="color:#fff">${p.name}</td>
             <td>${p.units}</td>
-            <td>$${(p.revenue||0).toLocaleString('es-CL')}</td>
+            <td>$${$(p.revenue)}</td>
           </tr>`;
         });
         html += `</tbody></table></div>`;
@@ -1691,11 +1691,11 @@
             <div style="flex:1;background:var(--card-hover);border-radius:3px;height:14px;overflow:hidden">
               <div style="height:100%;width:${pct.toFixed(1)}%;background:${barColor};border-radius:3px;transition:width .3s"></div>
             </div>
-            <span style="min-width:110px;text-align:right;color:${isPeak ? 'var(--gold)' : '#888'};font-weight:${isPeak ? '600' : '400'}">$${(h.sales||0).toLocaleString('es-CL')} · ${h.count} ctas</span>
+            <span style="min-width:110px;text-align:right;color:${isPeak ? 'var(--gold)' : '#888'};font-weight:${isPeak ? '600' : '400'}">$${$(h.sales)} · ${h.count} ctas</span>
           </div>`;
         });
         const peak = bd.hourly_curve.reduce((a, b) => a.sales > b.sales ? a : b);
-        html += `<div style="margin-top:6px;font-size:11px;color:#888">Peak: <strong style="color:var(--gold)">${peak.label}</strong> con $${(peak.sales||0).toLocaleString('es-CL')}</div>`;
+        html += `<div style="margin-top:6px;font-size:11px;color:#888">Peak: <strong style="color:var(--gold)">${peak.label}</strong> con $${$(peak.sales)}</div>`;
         html += `</div></div>`;
       }
 
@@ -1709,7 +1709,7 @@
               <thead><tr><th>#</th><th>Nombre</th><th>Ventas</th><th>Ctas</th><th>Ticket</th></tr></thead>
               <tbody>`;
           list.forEach(g => {
-            t += `<tr><td>${g.rank}</td><td>${g.name}</td><td>${(g.ventas||0).toLocaleString('es-CL')}</td><td>${g.cuentas}</td><td>${(g.ticket||0).toLocaleString('es-CL')}</td></tr>`;
+            t += `<tr><td>${g.rank}</td><td>${g.name}</td><td>$${$(g.ventas)}</td><td>${g.cuentas}</td><td>$${$(g.ticket)}</td></tr>`;
           });
           t += `</tbody></table></div>`;
           return t;
@@ -1729,14 +1729,14 @@
           const badge = g.local === 'BC1' ? '<span style="background:var(--gold);color:#000;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;margin-right:4px">BC1</span>'
                       : g.local === 'BC2' ? '<span style="background:#3b82f6;color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;margin-right:4px">BC2</span>'
                       : '';
-          html += `<tr><td>${g.rank}</td><td>${badge} ${g.name}</td><td>${(g.ventas||0).toLocaleString('es-CL')}</td><td>${g.cuentas}</td><td>${(g.ticket||0).toLocaleString('es-CL')}</td></tr>`;
+          html += `<tr><td>${g.rank}</td><td>${badge} ${g.name}</td><td>$${$(g.ventas)}</td><td>${g.cuentas}</td><td>$${$(g.ticket)}</td></tr>`;
         });
         // Totals per local
         const bc1t = bd.garzones.filter(g => g.local === 'BC1').reduce((s, g) => s + g.ventas, 0);
         const bc2t = bd.garzones.filter(g => g.local === 'BC2').reduce((s, g) => s + g.ventas, 0);
-        const totalNote = bc1t && bc2t ? ` (BC1 ${(bc1t||0).toLocaleString('es-CL')} + BC2 ${(bc2t||0).toLocaleString('es-CL')})` : '';
+        const totalNote = bc1t && bc2t ? ` (BC1 $${$(bc1t)} + BC2 $${$(bc2t)})` : '';
         html += `</tbody></table>
-          <div style="font-size:11px;color:#888;padding:4px 8px;text-align:right">Total: ${(bc1t + bc2t||0).toLocaleString('es-CL')}${totalNote}</div>
+          <div style="font-size:11px;color:#888;padding:4px 8px;text-align:right">Total: $${$(bc1t + bc2t)}${totalNote}</div>
           </div>`;
       }
 
@@ -1754,7 +1754,7 @@
           html += `<div class="channel-row">
             <span class="channel-label" style="width:120px">${mp.metodo}</span>
             <div class="channel-bar"><div class="channel-fill ${colors[i % colors.length]}" style="width:${Math.min(pctNum, 100)}%"></div></div>
-            <span class="channel-pct" style="width:80px">${(mp.monto||0).toLocaleString('es-CL')} (${mp.pct})</span>
+            <span class="channel-pct" style="width:80px">$${$(mp.monto)} (${mp.pct})</span>
           </div>`;
         });
         html += `</div></div></div>`;
@@ -1800,8 +1800,8 @@
         <div class="dash-section-title">COMPARATIVA SEMANAL — Sem ${w.week_num} (${fmtDate(w.start_date)} al ${fmtDate(w.end_date)})</div>
         <div class="kpi-card" style="margin-bottom:12px">
           <div class="kpi-sub">
-            Total presencial: <span style="color:#fff;font-weight:600">${(w.total_presencial||0).toLocaleString('es-CL')}</span>
-            <span style="color:#888;margin:0 6px">vs</span>${(w.prev_total_presencial||0).toLocaleString('es-CL')}
+            Total presencial: <span style="color:#fff;font-weight:600">$${$(w.total_presencial)}</span>
+            <span style="color:#888;margin:0 6px">vs</span>$${$(w.prev_total_presencial)}
             ${deltaStr ? `<span class="kpi-badge ${delta >= 0 ? 'up' : 'down'}">${deltaStr}</span>` : ''}
           </div>
         </div>`;
@@ -1820,8 +1820,8 @@
             html += `<tr>
               <td>${i + 1}</td>
               <td style="color:#fff">${p.name}</td>
-              <td>${(p.current||0).toLocaleString('es-CL')}</td>
-              <td style="color:#888">${(p.previous||0).toLocaleString('es-CL')}</td>
+              <td>$${$(p.current)}</td>
+              <td style="color:#888">$${$(p.previous)}</td>
               <td>${dBadge(p.delta_pct)}</td>
             </tr>`;
           });
@@ -1862,8 +1862,8 @@
             html += `<tr>
               <td>${i + 1}</td>
               <td>${g.name}${g.local ? ` <span style="color:#666;font-size:10px">${g.local}</span>` : ''}</td>
-              <td>$${(g.sales||0).toLocaleString('es-CL')}</td>
-              <td style="color:#888">$${(g.prev_sales||0).toLocaleString('es-CL')}</td>
+              <td>$${$(g.sales)}</td>
+              <td style="color:#888">$${$(g.prev_sales)}</td>
               <td>${dBadge(g.delta_pct)}</td>
             </tr>`;
           });
@@ -1879,9 +1879,9 @@
           w.weekly_channels.forEach(ch => {
             html += `<tr>
               <td style="color:#fff">${ch.name}</td>
-              <td>$${(ch.sales||0).toLocaleString('es-CL')}</td>
+              <td>$${$(ch.sales)}</td>
               <td>${ch.pct}%</td>
-              <td style="color:#888">$${(ch.prev_sales||0).toLocaleString('es-CL')}</td>
+              <td style="color:#888">$${$(ch.prev_sales)}</td>
               <td>${dBadge(ch.delta_pct)}</td>
             </tr>`;
           });
