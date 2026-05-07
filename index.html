@@ -940,47 +940,125 @@
       border-radius: var(--radius);
     }
 
-    /* ── Meta Mensual Progress ── */
-    .meta-progress-wrap {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 20px;
-      margin-bottom: 20px;
+    /* ── Meta Mensual Progress (v2) ── */
+    .meta-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
-    .meta-progress-header {
+    .meta-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .meta-head-left { display: flex; flex-direction: column; gap: 2px; }
+    .meta-head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .meta-day {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.3px;
+    }
+    .meta-amount {
+      font-family: var(--mono);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.1;
+    }
+    .meta-amount .meta-target {
+      color: var(--text-tertiary);
+      font-weight: 500;
+      font-size: 18px;
+      margin-left: 4px;
+    }
+    .meta-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+    }
+    .meta-status.up   { background: var(--green-dim); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
+    .meta-status.down { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(248,113,113,0.25); }
+    .meta-status.warn { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(251,146,60,0.25); }
+    .meta-status svg { width: 12px; height: 12px; stroke-width: 2.5; }
+
+    .meta-bar-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .meta-bar {
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      overflow: visible;
+      position: relative;
+    }
+    .meta-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.8s ease;
+      position: relative;
+    }
+    .meta-bar-marker {
+      position: absolute;
+      top: -4px;
+      bottom: -4px;
+      width: 2px;
+      background: var(--text-secondary);
+      border-radius: 2px;
+    }
+    .meta-bar-legend {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .meta-bar-legend .acum { color: var(--text); font-weight: 600; }
+    .meta-bar-legend .expected { display: inline-flex; align-items: center; gap: 5px; }
+    .meta-bar-legend .expected::before {
+      content: '';
+      width: 2px; height: 11px;
+      background: var(--text-secondary);
+      border-radius: 1px;
+    }
+
+    .meta-projection {
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      margin-bottom: 10px;
+      gap: 12px;
+      flex-wrap: wrap;
     }
-    .meta-progress-bar {
-      width: 100%;
-      height: 22px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 6px;
-      overflow: hidden;
-      position: relative;
+    .meta-projection-main {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
     }
-    .meta-progress-fill {
-      height: 100%;
-      border-radius: 6px;
-      transition: width 0.8s ease;
-    }
-    .meta-progress-marker {
-      position: absolute;
-      top: 0;
-      height: 100%;
-      width: 2px;
-      background: rgba(255,255,255,0.3);
-    }
-    .meta-progress-marker-label {
-      position: absolute;
-      top: -16px;
+    .meta-projection-main strong {
       font-family: var(--mono);
-      font-size: 9px;
-      color: var(--text-muted);
-      transform: translateX(-50%);
+      font-weight: 700;
+    }
+    .meta-targets {
+      display: inline-flex;
+      gap: 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .meta-targets span strong {
+      color: var(--text-secondary);
+      font-weight: 500;
+      margin-left: 4px;
     }
 
     /* ── Score Operacional ── */
@@ -1543,40 +1621,59 @@
       html += `<div class="kpi-card"><div class="kpi-label">Score Operacional</div><div class="no-data" style="border:none;background:none">Sin datos</div></div>`;
     }
 
-    // Meta mensual progress
+    // Meta mensual progress (v2 — clearer hierarchy + better marker)
     if (mm) {
       const acumPct = mm.acumulado_pct || 0;
-      const dayPct = ((mm.dia_actual / mm.dias_mes) * 100).toFixed(0);
-      const fillColor = acumPct >= parseFloat(dayPct) ? 'var(--green)' : acumPct >= parseFloat(dayPct) * 0.85 ? 'var(--gold)' : 'var(--red)';
-      const acumM = mm.acumulado_monto ? (mm.acumulado_monto / 1e6).toFixed(1) : '?';
-      const metaM = (mm.meta_total / 1e6).toFixed(0);
-      const onTrack = acumPct >= parseFloat(dayPct);
+      const dayPctRaw = (mm.dia_actual / mm.dias_mes) * 100;
+      const dayPct = dayPctRaw.toFixed(1);
+      // Status thresholds: on track if >= expected, warning if within 85% of expected, danger otherwise
+      const onTrack = acumPct >= dayPctRaw;
+      const inWarn = !onTrack && acumPct >= dayPctRaw * 0.85;
+      const statusClass = onTrack ? 'up' : inWarn ? 'warn' : 'down';
+      const fillColor = onTrack ? 'var(--green)' : inWarn ? 'var(--orange)' : 'var(--red)';
       const trackIcon = onTrack ? ICON.arrowUp : ICON.arrowDown;
       const trackLabel = onTrack ? 'Sobre ritmo' : 'Bajo ritmo';
+      const deltaPp = (acumPct - dayPctRaw).toFixed(1);
+      const deltaSign = deltaPp >= 0 ? '+' : '';
+
+      const acumM = mm.acumulado_monto ? (mm.acumulado_monto / 1e6).toFixed(1) : '?';
+      const metaM = (mm.meta_total / 1e6).toFixed(0);
+
+      // Marker position can't visually overlap the acum % label — clamp to >=acumPct + 4 if too close
+      const markerLeft = Math.min(Math.max(dayPctRaw, 2), 100);
+
       html += `
-        <div class="kpi-card">
-          <div class="meta-progress-header">
-            <div class="kpi-label">Meta Mensual — $${metaM}M</div>
-            <div class="kpi-sub" style="margin:0"><span style="color:${fillColor};font-weight:600">$${acumM}M</span> acumulado (${pct(acumPct)})</div>
-          </div>
-          <div class="meta-progress-bar" style="position:relative">
-            <div class="meta-progress-fill" style="width:${Math.min(acumPct, 100)}%;background:${fillColor}"></div>
-            <div class="meta-progress-marker" style="left:${dayPct}%">
-              <div class="meta-progress-marker-label">Día ${mm.dia_actual}/${mm.dias_mes}</div>
+        <div class="kpi-card meta-card">
+          <div class="meta-head">
+            <div class="meta-head-left">
+              <div class="kpi-label" style="margin:0">Meta mensual</div>
+              <div class="meta-amount">$${acumM}M<span class="meta-target">/ $${metaM}M</span></div>
+              <div class="meta-day">Día ${mm.dia_actual} de ${mm.dias_mes}</div>
+            </div>
+            <div class="meta-head-right">
+              <span class="meta-status ${statusClass}">${trackIcon} ${trackLabel}</span>
+              <span class="kpi-sub" style="margin:0;font-size:12px">Δ ${deltaSign}${deltaPp}pp vs esperado</span>
             </div>
           </div>
-          <div style="display:flex;justify-content:space-between;margin-top:12px;align-items:center;flex-wrap:wrap;gap:8px">
-            <div class="kpi-sub" style="margin:0">BC1: $${(mm.meta_bc1/1e6).toFixed(0)}M</div>
-            <div class="kpi-sub" style="margin:0">BC2: $${(mm.meta_bc2/1e6).toFixed(0)}M</div>
-            <div class="kpi-sub" style="margin:0;display:inline-flex;align-items:center;gap:5px;color:${onTrack ? 'var(--green)' : 'var(--red)'};font-weight:600">${trackIcon} ${trackLabel}</div>
+
+          <div class="meta-bar-wrap">
+            <div class="meta-bar">
+              <div class="meta-bar-fill" style="width:${Math.min(acumPct, 100)}%;background:${fillColor}"></div>
+              <div class="meta-bar-marker" style="left:${markerLeft}%" title="Día ${mm.dia_actual}/${mm.dias_mes}: deberías estar en ${dayPct}%"></div>
+            </div>
+            <div class="meta-bar-legend">
+              <span><span class="acum">${pct(acumPct)}</span> acumulado</span>
+              <span class="expected">${dayPct}% esperado</span>
+            </div>
           </div>
-          ${mm.projected ? `<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">
-            <div class="kpi-sub" style="margin-bottom:4px"><span style="color:${mm.will_hit_meta ? 'var(--green)' : 'var(--red)'};font-weight:600">Proyección: $${(mm.projected/1e6).toFixed(1)}M</span> <span style="color:var(--text-secondary)">(${mm.projected_pct}% de meta)</span></div>
-            <div style="font-size:12px;color:var(--text-tertiary);font-family:var(--mono)">Al ritmo actual llegarías a $${(mm.projected/1e6).toFixed(1)}M</div>
-          </div>` : ''}
+
+          ${mm.projected ? `<div class="meta-projection">
+            <div class="meta-projection-main">A este ritmo cerrás en <strong style="color:${mm.will_hit_meta ? 'var(--green)' : 'var(--red)'}">$${(mm.projected/1e6).toFixed(1)}M</strong> · ${mm.projected_pct}% de meta</div>
+            <div class="meta-targets"><span>BC1<strong>$${(mm.meta_bc1/1e6).toFixed(0)}M</strong></span><span>BC2<strong>$${(mm.meta_bc2/1e6).toFixed(0)}M</strong></span></div>
+          </div>` : `<div class="meta-projection"><div class="meta-projection-main">Sin proyección disponible</div><div class="meta-targets"><span>BC1<strong>$${(mm.meta_bc1/1e6).toFixed(0)}M</strong></span><span>BC2<strong>$${(mm.meta_bc2/1e6).toFixed(0)}M</strong></span></div></div>`}
         </div>`;
     } else {
-      html += `<div class="kpi-card"><div class="kpi-label">Meta Mensual</div><div class="no-data" style="border:none;background:none">Sin datos</div></div>`;
+      html += `<div class="kpi-card"><div class="kpi-label">Meta mensual</div><div class="no-data" style="border:none;background:none">Sin datos</div></div>`;
     }
 
     html += `</div></div>`;
