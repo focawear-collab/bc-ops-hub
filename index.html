@@ -2282,6 +2282,26 @@
       desc: 'Reviews consolidadas (Google + Uber) → Telegram con semáforo',
       schedule: '07:00 Chile', cron: true, hasDateInput: false,
     },
+    'Reviews Diario — Google + Uber Eats': {
+      iconKey: 'star', category: 'diario',
+      desc: 'Consolida reviews diarias de Google + Uber Eats — input para alertas y borradores',
+      schedule: 'Activo', cron: true, hasDateInput: false,
+    },
+    'Reviews Alertas Negativas → Telegram': {
+      iconKey: 'siren', category: 'diario',
+      desc: 'Alerta inmediata en Telegram cuando una review es ≤3 estrellas',
+      schedule: 'Activo', cron: true, hasDateInput: false,
+    },
+    'Reviews Borradores Respuesta → Telegram': {
+      iconKey: 'mail', category: 'diario',
+      desc: 'Genera borradores de respuesta a reviews y los envía a Telegram para revisión',
+      schedule: 'Manual', cron: false, hasDateInput: false,
+    },
+    'Análisis Semanal Reviews → Telegram': {
+      iconKey: 'barChart', category: 'semanal',
+      desc: 'Resumen semanal de reviews (volumen, rating promedio, temas) → Telegram',
+      schedule: 'Manual', cron: false, hasDateInput: false,
+    },
     'Reporte Semanal BlackChicken': {
       iconKey: 'barChart', category: 'semanal',
       desc: 'Resumen semanal de ventas, productos, operaciones y KPIs',
