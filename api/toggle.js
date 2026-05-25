@@ -1,4 +1,5 @@
-// api/trigger.js — Dispara un workflow via workflow_dispatch (Basic Auth required)
+// api/toggle.js — Enable/disable GitHub Actions workflow (Basic Auth required)
+// POST { workflowId: number, action: "enable" | "disable" }
 
 const { checkAuth } = require('./_auth.js');
 
@@ -17,32 +18,32 @@ module.exports = async function handler(req, res) {
   const token = process.env.GITHUB_TOKEN;
   if (!token) return res.status(500).json({ error: 'GITHUB_TOKEN not configured' });
 
-  const { workflowId, date } = req.body || {};
+  const { workflowId, action } = req.body || {};
   if (!workflowId) return res.status(400).json({ error: 'workflowId is required' });
+  if (action !== 'enable' && action !== 'disable') {
+    return res.status(400).json({ error: 'action must be "enable" or "disable"' });
+  }
 
   const repo = 'focawear-collab/bc-automations';
-  const inputs = date ? { date } : {};
 
   try {
     const resp = await fetch(
-      `https://api.github.com/repos/${repo}/actions/workflows/${workflowId}/dispatches`,
+      `https://api.github.com/repos/${repo}/actions/workflows/${workflowId}/${action}`,
       {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           Authorization: `token ${token}`,
           Accept: 'application/vnd.github+json',
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ref: 'main', inputs }),
       }
     );
 
     if (resp.status === 204) {
-      return res.json({ success: true });
+      return res.json({ success: true, workflowId, action, newState: action === 'enable' ? 'active' : 'disabled_manually' });
     }
 
     const err = await resp.json().catch(() => ({ message: `HTTP ${resp.status}` }));
-    res.status(resp.status).json({ error: err.message });
+    res.status(resp.status).json({ error: err.message || `HTTP ${resp.status}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

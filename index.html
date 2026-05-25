@@ -1475,6 +1475,78 @@
       60%      { transform: translateX(-6px); }
       80%      { transform: translateX(6px); }
     }
+
+    /* ── Toggle switch on/off (cron jobs) ── */
+    .wf-toggle {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .wf-toggle-track {
+      position: relative;
+      width: 38px; height: 22px;
+      background: #2a2a2a;
+      border-radius: 22px;
+      transition: background 0.18s ease;
+      flex-shrink: 0;
+    }
+    .wf-toggle-thumb {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 18px; height: 18px;
+      background: #555;
+      border-radius: 50%;
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+    .wf-toggle.is-on .wf-toggle-track { background: rgba(74,222,128,0.25); }
+    .wf-toggle.is-on .wf-toggle-thumb { background: var(--green, #4ade80); transform: translateX(16px); }
+    .wf-toggle.is-loading { opacity: 0.55; pointer-events: none; }
+    .wf-toggle.is-loading .wf-toggle-thumb {
+      background: var(--gold);
+      animation: togglePulse 0.9s ease-in-out infinite;
+    }
+    .wf-toggle-label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      color: var(--text-tertiary, #888);
+      text-transform: uppercase;
+    }
+    .wf-toggle.is-on .wf-toggle-label { color: var(--green, #4ade80); }
+    @keyframes togglePulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Creds modal (Basic Auth) ── */
+    .creds-input-group {
+      display: flex; flex-direction: column; gap: 10px;
+      text-align: left; margin-top: 4px;
+    }
+    .creds-input-group label {
+      font-family: var(--mono);
+      font-size: 10.5px; font-weight: 600;
+      letter-spacing: 0.5px; text-transform: uppercase;
+      color: var(--text-tertiary, #888);
+      margin-bottom: -6px;
+    }
+    .creds-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--mono); font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color var(--motion-fast);
+      box-sizing: border-box;
+    }
+    .creds-input:focus { border-color: var(--gold); }
   </style>
 </head>
 <body>
@@ -2565,110 +2637,160 @@
   }
 
 
-  // ── WORKFLOW METADATA (updated 07-may-2026 — Friction Hunter v2) ───
-  // Icons reference keys in ICON map (Lucide-style SVGs) instead of unicode glyphs.
+  // ── WORKFLOW METADATA (updated 25-may-2026 — cron-driven schedule) ──
+  // `cronUtc` = expression in UTC from .yml. Schedule string is computed at render
+  // via formatChileSchedule() using Intl with America/Santiago (handles DST).
+  // For workflows without a cron (manual only), set cronUtc: null.
   const WORKFLOW_META = {
+    // ── Diarios ────────────────────────────────────────────────────────
     'Briefing Diario BlackChicken': {
       iconKey: 'rocket', category: 'diario',
       desc: 'Ventas, canales, productos top, checklists y alertas del día anterior',
-      schedule: '03:00 Chile', cron: true, hasDateInput: true,
+      cronUtc: '30 10 * * *', hasDateInput: true,
     },
     'Análisis Diario CheckRocket': {
       iconKey: 'checkCircle', category: 'diario',
       desc: 'Checklists BC1 y BC2: cumplimiento, temperaturas, merma y no-cumple',
-      schedule: '04:00 Chile', cron: true, hasDateInput: true,
+      cronUtc: '40 10 * * *', hasDateInput: true,
     },
     'Cuadratura Diaria BlackChicken': {
       iconKey: 'grid', category: 'diario',
       desc: 'Cruza ventas Justo vs compras Ruka — genera Excel + reporte HTML',
-      schedule: '07:50 Chile', cron: true, hasDateInput: true,
-    },
-    'Briefing Matutino → Telegram': {
-      iconKey: 'plane', category: 'diario',
-      desc: 'Envía resumen del briefing al canal de Telegram a las 06:30',
-      schedule: '06:30 Chile', cron: true, hasDateInput: false,
-    },
-    'Vigía de Ventas → Telegram': {
-      iconKey: 'eye', category: 'diario',
-      desc: 'Alerta en Telegram si las ventas del día están bajo el 90% del objetivo',
-      schedule: '05:30 Chile', cron: true, hasDateInput: false,
-    },
-    'Patrulla CheckRocket → Telegram': {
-      iconKey: 'shield', category: 'diario',
-      desc: 'Envía reporte de checklists al canal de Telegram',
-      schedule: '06:00 Chile', cron: true, hasDateInput: false,
-    },
-    'Google Reviews — Apify Scraper': {
-      iconKey: 'search', category: 'diario',
-      desc: 'Scraping Google Reviews via Apify para BC1 y BC2 — genera JSON',
-      schedule: '06:15 Chile', cron: true, hasDateInput: false,
-    },
-    'Uber Eats Reviews — BC1': {
-      iconKey: 'star', category: 'diario',
-      desc: 'Lee reviews Uber Eats desde Notion — genera JSON para alertas',
-      schedule: '06:30 Chile', cron: true, hasDateInput: false,
-    },
-    'Reviews Uber Eats → Telegram': {
-      iconKey: 'star', category: 'diario',
-      desc: 'Reviews consolidadas (Google + Uber) → Telegram con semáforo',
-      schedule: '07:00 Chile', cron: true, hasDateInput: false,
+      cronUtc: '50 10 * * *', hasDateInput: true,
     },
     'Reviews Diario — Google + Uber Eats': {
       iconKey: 'star', category: 'diario',
       desc: 'Consolida reviews diarias de Google + Uber Eats — input para alertas y borradores',
-      schedule: 'Activo', cron: true, hasDateInput: false,
+      cronUtc: '40 11 * * *', hasDateInput: false,
+    },
+    // ── Telegram diarias ───────────────────────────────────────────────
+    'Vigía de Ventas → Telegram': {
+      iconKey: 'eye', category: 'diario',
+      desc: 'Alerta en Telegram si las ventas del día están bajo el 90% del objetivo',
+      cronUtc: '30 9 * * *', hasDateInput: false,
+    },
+    'Patrulla CheckRocket → Telegram': {
+      iconKey: 'shield', category: 'diario',
+      desc: 'Envía reporte de checklists al canal de Telegram',
+      cronUtc: '0 10 * * *', hasDateInput: false,
+    },
+    'Briefing Matutino → Telegram': {
+      iconKey: 'plane', category: 'diario',
+      desc: 'Envía resumen del briefing al canal de Telegram',
+      cronUtc: '30 10 * * *', hasDateInput: false,
     },
     'Reviews Alertas Negativas → Telegram': {
       iconKey: 'siren', category: 'diario',
       desc: 'Alerta inmediata en Telegram cuando una review es ≤3 estrellas',
-      schedule: 'Activo', cron: true, hasDateInput: false,
+      cronUtc: '45 10 * * *', hasDateInput: false,
+    },
+    'Reviews Uber Eats → Telegram': {
+      iconKey: 'star', category: 'diario',
+      desc: 'Reviews consolidadas (Google + Uber) → Telegram con semáforo',
+      cronUtc: '0 11 * * *', hasDateInput: false,
     },
     'Reviews Borradores Respuesta → Telegram': {
       iconKey: 'mail', category: 'diario',
-      desc: 'Genera borradores de respuesta a reviews y los envía a Telegram para revisión',
-      schedule: 'Manual', cron: false, hasDateInput: false,
+      desc: 'Genera borradores de respuesta a reviews y los envía a Telegram',
+      cronUtc: '0 11 * * *', hasDateInput: false,
     },
-    'Análisis Semanal Reviews → Telegram': {
-      iconKey: 'barChart', category: 'semanal',
-      desc: 'Resumen semanal de reviews (volumen, rating promedio, temas) → Telegram',
-      schedule: 'Manual', cron: false, hasDateInput: false,
-    },
+    // ── Semanales ──────────────────────────────────────────────────────
     'Reporte Semanal BlackChicken': {
       iconKey: 'barChart', category: 'semanal',
       desc: 'Resumen semanal de ventas, productos, operaciones y KPIs',
-      schedule: 'Lunes · 08:00 Chile', cron: true, hasDateInput: false,
+      cronUtc: '0 11 * * 1', hasDateInput: false,
     },
     'Ventas Semanales BlackChicken': {
       iconKey: 'arrowUp', category: 'semanal',
       desc: 'Infografías semanales de ventas por producto y local + mensaje WhatsApp',
-      schedule: 'Lunes · 08:10 Chile', cron: true, hasDateInput: true,
+      cronUtc: '10 11 * * 1', hasDateInput: true,
     },
     'Estimado de Compra v2.1': {
       iconKey: 'package', category: 'semanal',
       desc: 'Estimado semanal de compras por ingrediente, proveedor y déficit de stock',
-      schedule: 'Lunes · 08:20 Chile', cron: true, hasDateInput: false,
+      cronUtc: '20 11 * * 1', hasDateInput: false,
     },
+    'Telegram: Food Cost Semanal': {
+      iconKey: 'package', category: 'semanal',
+      desc: 'Tracker semanal de food cost por insumo y local → Telegram',
+      cronUtc: '0 11 * * 1', hasDateInput: false,
+    },
+    'Estimado de Compra → Telegram': {
+      iconKey: 'package', category: 'semanal',
+      desc: 'Envía el estimado de compra semanal al canal de Telegram',
+      cronUtc: '0 11 * * 1', hasDateInput: false,
+    },
+    'Telegram: Compras Intel Semanal': {
+      iconKey: 'search', category: 'semanal',
+      desc: 'Inteligencia de compras: variaciones de precio y proveedores → Telegram',
+      cronUtc: '30 11 * * 1', hasDateInput: false,
+    },
+    'Telegram: Dotacion Semanal': {
+      iconKey: 'eye', category: 'semanal',
+      desc: 'Análisis semanal de dotación y horas trabajadas → Telegram',
+      cronUtc: '0 12 * * 1', hasDateInput: false,
+    },
+    'Análisis Semanal Reviews → Telegram': {
+      iconKey: 'barChart', category: 'semanal',
+      desc: 'Resumen semanal de reviews (volumen, rating promedio, temas) → Telegram',
+      cronUtc: '0 14 * * 5', hasDateInput: false,
+    },
+    // ── Mensual ────────────────────────────────────────────────────────
     'Reporte Mensual BlackChicken': {
       iconKey: 'diamond', category: 'mensual',
       desc: 'Reporte ejecutivo mensual con YoY, top productos, compras Ruka e insights',
-      schedule: 'Día 1 · 08:30 Chile', cron: true, hasDateInput: false,
+      cronUtc: '30 11 1 * *', hasDateInput: false,
     },
+    // ── Sin cron (legacy / solo manual) ────────────────────────────────
     'Validación Cruzada Semanal BlackChicken': {
       iconKey: 'layers', category: 'desactivado',
       desc: 'Valida coherencia entre ventas registradas y compras del período',
-      schedule: 'Desactivado', cron: false, hasDateInput: false,
+      cronUtc: null, hasDateInput: false,
     },
     'Alertas Diarias BlackChicken': {
       iconKey: 'zap', category: 'desactivado',
       desc: 'Alertas automáticas cuando métricas operacionales salen de rango — legacy',
-      schedule: 'Desactivado', cron: false, hasDateInput: true,
+      cronUtc: null, hasDateInput: true,
     },
     'Envío Emails Matutinos': {
       iconKey: 'mail', category: 'desactivado',
       desc: 'Enviador centralizado legacy — reemplazado por email por workflow',
-      schedule: 'Desactivado', cron: false, hasDateInput: true,
+      cronUtc: null, hasDateInput: true,
     },
   };
+
+  // ── Format cron UTC → "07:30 Chile · diario" / "Lun 08:00 Chile · semanal" ──
+  const DAY_SHORT_ES = { '0': 'Dom', '1': 'Lun', '2': 'Mar', '3': 'Mié', '4': 'Jue', '5': 'Vie', '6': 'Sáb', '7': 'Dom' };
+  function formatChileSchedule(cronUtc) {
+    if (!cronUtc) return 'Solo manual';
+    const parts = cronUtc.trim().split(/\s+/);
+    if (parts.length !== 5) return cronUtc;
+    const [min, hr, dom, mon, dow] = parts;
+    // Pick a Date in the next 30 days where DST matches what'll actually fire next.
+    // We use today: the offset only changes 2-3 days per year, so showing today's offset
+    // is correct ~99% of the time.
+    const now = new Date();
+    const sample = new Date(Date.UTC(
+      now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+      parseInt(hr, 10), parseInt(min, 10)
+    ));
+    const timeStr = new Intl.DateTimeFormat('es-CL', {
+      timeZone: 'America/Santiago', hour: '2-digit', minute: '2-digit', hour12: false
+    }).format(sample);
+
+    // Cadence
+    let cadence;
+    if (dow !== '*' && dow !== '?') {
+      // weekly — possibly comma list
+      const days = dow.split(',').map(d => DAY_SHORT_ES[d] || d).join('/');
+      cadence = `${days} · semanal`;
+    } else if (dom !== '*' && dom !== '?') {
+      cadence = `día ${dom} · mensual`;
+    } else {
+      cadence = 'diario';
+    }
+    return `${timeStr} Chile · ${cadence}`;
+  }
 
   const SECTION_ORDER = ['diario', 'semanal', 'mensual', 'desactivado'];
   const SECTION_LABELS = {
@@ -2743,8 +2865,7 @@
         const m = meta || {
           iconKey: 'helpCircle', category: cat,
           desc: wf.path?.replace('.github/workflows/', '') || '',
-          schedule: wf.state === 'active' ? 'Activo' : 'Desactivado',
-          cron: false, hasDateInput: true,
+          cronUtc: null, hasDateInput: true,
         };
 
         const { statusClass, conclusionBadge } = getStatus(wf);
@@ -2753,19 +2874,28 @@
         sectionIdx++;
 
         const cardIconSvg = ICON[m.iconKey] || ICON.helpCircle;
-        const isDisabled = cat === 'desactivado';
-        const triggerBtn = isDisabled
-          ? `<button class="btn-trigger" disabled aria-label="Workflow desactivado">${ICON.ban} Desactivado</button>`
-          : `<button class="btn-trigger" onclick="openModal(${wf.id}, '${escHtml(wf.name)}', '${escHtml(m.desc)}', '${m.iconKey}', ${m.hasDateInput})" aria-label="Ejecutar ${escHtml(cleanName(wf.name))}">${ICON.play} Ejecutar</button>`;
+        const isLegacy = cat === 'desactivado';            // legacy = sin cron en el .yml
+        const isActive = wf.state === 'active';
+        const hasCron = !!m.cronUtc;
+        const scheduleStr = formatChileSchedule(m.cronUtc);
+
+        const triggerBtn = `<button class="btn-trigger" onclick="openModal(${wf.id}, '${escHtml(wf.name)}', '${escHtml(m.desc)}', '${m.iconKey}', ${m.hasDateInput})" aria-label="Ejecutar ${escHtml(cleanName(wf.name))}">${ICON.play} Ejecutar</button>`;
+
+        const toggleBtn = hasCron
+          ? `<div class="wf-toggle ${isActive ? 'is-on' : ''}" id="toggle-${wf.id}" role="switch" aria-checked="${isActive}" tabindex="0" onclick="toggleWorkflow(${wf.id}, '${escHtml(wf.name)}', '${wf.state}')" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleWorkflow(${wf.id}, '${escHtml(wf.name)}', '${wf.state}');}" title="${isActive ? 'Apagar cron' : 'Encender cron'}">
+              <span class="wf-toggle-track"><span class="wf-toggle-thumb"></span></span>
+              <span class="wf-toggle-label">${isActive ? 'ON' : 'OFF'}</span>
+            </div>`
+          : `<span class="badge badge-manual" title="Sin cron en .yml — solo workflow_dispatch">${ICON.clock || ''} Manual</span>`;
 
         cardsHtml += `
-          <div class="card ${statusClass}${isDisabled ? ' status-disabled' : ''}" style="animation-delay:${delay}s;${isDisabled ? 'opacity:0.55;' : ''}">
+          <div class="card ${statusClass}${!isActive ? ' status-disabled' : ''}" style="animation-delay:${delay}s;${!isActive ? 'opacity:0.65;' : ''}">
             <div class="card-top">
               <div class="card-icon">${cardIconSvg}</div>
               <div class="card-badges">
                 ${conclusionBadge}
-                <span class="badge ${m.cron ? 'badge-cron' : 'badge-manual'}">
-                  ${m.cron ? ICON.clock : ''} ${m.schedule}
+                <span class="badge ${hasCron ? 'badge-cron' : 'badge-manual'}">
+                  ${hasCron ? ICON.clock : ''} ${scheduleStr}
                 </span>
               </div>
             </div>
@@ -2776,6 +2906,7 @@
             <div class="card-meta">${lastRunHtml}</div>
             <div class="card-footer">
               ${triggerBtn}
+              ${toggleBtn}
               ${wf.lastRun?.url ? `<a class="btn-logs" href="${wf.lastRun.url}" target="_blank" rel="noopener" title="Ver logs en GitHub Actions" aria-label="Ver logs en GitHub Actions">${ICON.arrowUpRight}</a>` : ''}
             </div>
           </div>`;
@@ -2914,6 +3045,104 @@
     if (e.key === 'Escape') closeModal();
   });
 
+  // ── Auth (Basic Auth — backend gate for trigger + toggle) ─────────
+  const AUTH_KEY = 'bc_ops_basic_auth';
+  function getAuth() { return sessionStorage.getItem(AUTH_KEY); }
+  function setAuth(email, pass) {
+    if (!email || !pass) return null;
+    const b64 = btoa(`${email}:${pass}`);
+    sessionStorage.setItem(AUTH_KEY, b64);
+    return b64;
+  }
+  function clearAuth() { sessionStorage.removeItem(AUTH_KEY); }
+
+  // Pending action queued while creds modal is open
+  let _pendingAuthAction = null;
+
+  function ensureAuth(actionFn) {
+    if (getAuth()) { actionFn(); return; }
+    _pendingAuthAction = actionFn;
+    openCredsModal();
+  }
+
+  function openCredsModal() {
+    const modal = document.getElementById('creds-gate');
+    document.getElementById('creds-email').value = '';
+    document.getElementById('creds-pass').value = '';
+    document.getElementById('creds-error').textContent = '';
+    modal.classList.add('open');
+    setTimeout(() => document.getElementById('creds-email').focus(), 50);
+  }
+  function closeCredsModal() {
+    document.getElementById('creds-gate').classList.remove('open');
+    _pendingAuthAction = null;
+  }
+  function submitCreds() {
+    const email = document.getElementById('creds-email').value.trim();
+    const pass  = document.getElementById('creds-pass').value;
+    const err   = document.getElementById('creds-error');
+    if (!email || !pass) { err.textContent = 'Email y clave son obligatorios.'; return; }
+    setAuth(email, pass);
+    document.getElementById('creds-gate').classList.remove('open');
+    const fn = _pendingAuthAction;
+    _pendingAuthAction = null;
+    if (fn) fn();
+  }
+
+  async function apiRequest(url, body) {
+    const auth = getAuth();
+    if (!auth) throw new Error('No auth');
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + auth,
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.status === 401) {
+      clearAuth();
+      throw new Error('AUTH_FAILED');
+    }
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    return data;
+  }
+
+  // ── Toggle workflow on/off ─────────────────────────────────────────
+  function toggleWorkflow(workflowId, name, currentState) {
+    const action = currentState === 'active' ? 'disable' : 'enable';
+    const cleanedName = cleanName(name);
+
+    if (action === 'disable') {
+      const ok = confirm(`Apagar el cron de "${cleanedName}"?\n\nDejará de dispararse automáticamente. Podrás encenderlo de vuelta en cualquier momento.`);
+      if (!ok) return;
+    }
+
+    ensureAuth(async () => {
+      const el = document.getElementById('toggle-' + workflowId);
+      if (el) el.classList.add('is-loading');
+      try {
+        await apiRequest('/api/toggle', { workflowId, action });
+        showToast(
+          action === 'disable' ? 'Cron apagado' : 'Cron encendido',
+          `"${cleanedName}" ahora está ${action === 'disable' ? 'pausado' : 'activo'}.`,
+          false
+        );
+        setTimeout(loadWorkflows, 800);
+      } catch (err) {
+        if (err.message === 'AUTH_FAILED') {
+          showToast('Credenciales inválidas', 'Volvé a ingresar email y clave.', true);
+          if (el) el.classList.remove('is-loading');
+          ensureAuth(() => toggleWorkflow(workflowId, name, currentState));
+        } else {
+          showToast('Error', err.message, true);
+          if (el) el.classList.remove('is-loading');
+        }
+      }
+    });
+  }
+
   // ── Trigger ────────────────────────────────────────────────────────
   async function confirmTrigger() {
     if (!activeWorkflowId) return;
@@ -2930,26 +3159,31 @@
       body.date = dateInput.value;
     }
 
-    try {
-      const resp = await fetch('/api/trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await resp.json();
-
-      if (data.success) {
-        showToast('Workflow ejecutado', 'Se disparó correctamente. Puede tardar unos segundos en aparecer en GitHub Actions.', false);
-        closeModal();
-        setTimeout(loadWorkflows, 4000);
-      } else {
-        throw new Error(data.error || 'Error desconocido');
+    const doTrigger = async () => {
+      try {
+        const data = await apiRequest('/api/trigger', body);
+        if (data.success) {
+          showToast('Workflow ejecutado', 'Se disparó correctamente. Puede tardar unos segundos en aparecer en GitHub Actions.', false);
+          closeModal();
+          setTimeout(loadWorkflows, 4000);
+        } else {
+          throw new Error(data.error || 'Error desconocido');
+        }
+      } catch (err) {
+        if (err.message === 'AUTH_FAILED') {
+          showToast('Credenciales inválidas', 'Volvé a ingresar email y clave.', true);
+          btn.disabled = false;
+          confirmText.innerHTML = `${ICON.play} Ejecutar`;
+          ensureAuth(doTrigger);
+        } else {
+          showToast('Error al ejecutar', err.message, true);
+          btn.disabled = false;
+          confirmText.innerHTML = `${ICON.play} Ejecutar`;
+        }
       }
-    } catch (err) {
-      showToast('Error al ejecutar', err.message, true);
-      btn.disabled = false;
-      confirmText.innerHTML = `${ICON.play} Ejecutar`;
-    }
+    };
+
+    ensureAuth(doTrigger);
   }
 
   // ── Lock Gate ─────────────────────────────────────────────────────
@@ -3029,6 +3263,30 @@
     <div class="lock-actions">
       <button class="lock-btn-cancel" onclick="closeLockGate()">Cancelar</button>
       <button class="lock-btn-enter" onclick="submitLockPin()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Creds Gate — Backend-validated auth for actions (toggle / trigger) -->
+<div class="lock-gate" id="creds-gate" role="dialog" aria-modal="true" aria-labelledby="creds-title">
+  <div class="lock-box" style="width: 360px">
+    <div class="lock-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+    </div>
+    <div class="lock-title" id="creds-title">Confirmar acción</div>
+    <div class="lock-subtitle">Esta acción requiere autenticación. Tu email y clave se guardan en la sesión.</div>
+    <div class="creds-input-group">
+      <label for="creds-email">Email</label>
+      <input type="email" id="creds-email" class="creds-input" placeholder="jonathan@blackchicken.cl" autocomplete="off"
+        onkeydown="if(event.key==='Enter')document.getElementById('creds-pass').focus();" />
+      <label for="creds-pass">Clave</label>
+      <input type="password" id="creds-pass" class="creds-input" placeholder="••••••••" autocomplete="off"
+        onkeydown="if(event.key==='Enter')submitCreds();if(event.key==='Escape')closeCredsModal();" />
+    </div>
+    <div class="lock-error" id="creds-error" aria-live="polite"></div>
+    <div class="lock-actions">
+      <button class="lock-btn-cancel" onclick="closeCredsModal()">Cancelar</button>
+      <button class="lock-btn-enter" onclick="submitCreds()">Confirmar</button>
     </div>
   </div>
 </div>

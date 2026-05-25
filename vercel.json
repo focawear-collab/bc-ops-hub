@@ -7,22 +7,17 @@
     "api/trigger.js": {
       "maxDuration": 10
     },
+    "api/toggle.js": {
+      "maxDuration": 10
+    },
     "api/dashboard.js": {
       "maxDuration": 15
     }
   },
   "rewrites": [
-    {
-      "source": "/api/workflows",
-      "destination": "/api/workflows"
-    },
-    {
-      "source": "/api/trigger",
-      "destination": "/api/trigger"
-    },
-    {
-      "source": "/api/dashboard",
-      "destination": "/api/dashboard"
-    }
+    { "source": "/api/workflows", "destination": "/api/workflows" },
+    { "source": "/api/trigger",   "destination": "/api/trigger" },
+    { "source": "/api/toggle",    "destination": "/api/toggle" },
+    { "source": "/api/dashboard", "destination": "/api/dashboard" }
   ]
 }
