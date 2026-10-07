@@ -1,8 +1,7 @@
 // api/trigger.js — Dispara un workflow via workflow_dispatch (Basic Auth required)
 
-const { checkAuth } = require('./_auth.js');
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -11,8 +10,6 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   // Auth gate
-  const auth = checkAuth(req);
-  if (!auth.ok) return res.status(auth.status || 401).json(auth.error);
 
   const token = process.env.GITHUB_TOKEN;
   if (!token) return res.status(500).json({ error: 'GITHUB_TOKEN not configured' });
@@ -47,3 +44,5 @@ module.exports = async function handler(req, res) {
     res.status(500).json({ error: err.message });
   }
 };
+
+module.exports = require('./_auth.js').conPin(handler, 'ops.ejecutar');

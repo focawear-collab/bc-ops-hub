@@ -1,8 +1,7 @@
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
-  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
-
+  
   const token = process.env.GITHUB_TOKEN;
   if (!token) return res.status(500).json({ error: 'GITHUB_TOKEN not configured' });
 
@@ -708,3 +707,5 @@ async function fetchJSON(url) {
   const text = await fetchText(url);
   try { return JSON.parse(text); } catch { return null; }
 }
+
+module.exports = require('./_auth.js').conPin(handler, 'ops.ver');

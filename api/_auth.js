@@ -1,33 +1,15 @@
-// api/_auth.js — Shared Basic Auth helper
-// Env vars: BC_OPS_USER (email), BC_OPS_PASS (password)
-// Usage: const { ok, error } = checkAuth(req); if (!ok) return res.status(401).json(error);
+// api/_auth.js — Acceso con el PIN personal de bc-usuarios (header x-pin).
+// ops.ver = ver dashboard y workflows · ops.ejecutar = encender/apagar crons y ejecutar workflows.
+// Reemplaza el usuario/clave compartidos (BC_OPS_USER/BC_OPS_PASS) y la clave escrita en la página.
+const { exigir } = require('./_bcpin');
 
-module.exports.checkAuth = function checkAuth(req) {
-  const expectedUser = process.env.BC_OPS_USER;
-  const expectedPass = process.env.BC_OPS_PASS;
-
-  if (!expectedUser || !expectedPass) {
-    return { ok: false, error: { error: 'Auth not configured (BC_OPS_USER/BC_OPS_PASS missing)' }, status: 500 };
-  }
-
-  const header = req.headers.authorization || '';
-  if (!header.startsWith('Basic ')) {
-    return { ok: false, error: { error: 'Missing credentials' }, status: 401 };
-  }
-
-  let user, pass;
-  try {
-    const decoded = Buffer.from(header.slice(6), 'base64').toString('utf-8');
-    const idx = decoded.indexOf(':');
-    user = decoded.slice(0, idx);
-    pass = decoded.slice(idx + 1);
-  } catch {
-    return { ok: false, error: { error: 'Invalid auth header' }, status: 401 };
-  }
-
-  if (user !== expectedUser || pass !== expectedPass) {
-    return { ok: false, error: { error: 'Invalid credentials' }, status: 401 };
-  }
-
-  return { ok: true };
+module.exports.conPin = function conPin(handler, permiso) {
+  return async function (req, res) {
+    res.setHeader('Cache-Control', 'private, no-store'); // nunca cachear en el CDN datos que piden PIN
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    const persona = await exigir(req, res, 'ops', req.headers['x-pin'], permiso);
+    if (!persona) return;
+    req.persona = persona;
+    return handler(req, res);
+  };
 };

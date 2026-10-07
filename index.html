@@ -1662,9 +1662,22 @@
 
 <script>
 
-  // ── Workflows auth gate ───────────────────────────────────────────
-  const WORKFLOWS_PIN = 'Fosk27423279!'; // ← cambiar aquí si se quiere otra clave
-  let workflowsUnlocked = sessionStorage.getItem('wf_unlocked') === '1';
+  // ── Acceso con PIN personal de bc-usuarios ────────────────────────
+  // Todo /api/ va con el header x-pin; el servidor decide (ops.ver / ops.ejecutar).
+  const PIN_KEY = 'bc_ops_pin';
+  try { sessionStorage.removeItem('wf_unlocked'); sessionStorage.removeItem('bc_ops_basic_auth'); } catch (e) {}
+  let workflowsUnlocked = !!sessionStorage.getItem(PIN_KEY);
+  (function () {
+    const orig = window.fetch.bind(window);
+    window.fetch = function (u, o) {
+      const url = typeof u === 'string' ? u : (u && u.url) || '';
+      if (url.startsWith('/api/')) { o = Object.assign({}, o || {}); o.headers = Object.assign({}, o.headers || {}, { 'x-pin': sessionStorage.getItem(PIN_KEY) || '' }); }
+      return orig(u, o).then(r => {
+        if (url.startsWith('/api/') && r.status === 401) { sessionStorage.removeItem(PIN_KEY); workflowsUnlocked = false; showLockGate(); }
+        return r;
+      });
+    };
+  })();
 
   // ── SVG icon system (Lucide-style, inline) ─────────────────────────
   // Replaces all emoji-as-icon usage. Stroke 1.75–2, currentColor for theming.
@@ -3060,9 +3073,8 @@
   let _pendingAuthAction = null;
 
   function ensureAuth(actionFn) {
-    if (getAuth()) { actionFn(); return; }
-    _pendingAuthAction = actionFn;
-    openCredsModal();
+    if (sessionStorage.getItem(PIN_KEY)) { actionFn(); return; }
+    showLockGate();
   }
 
   function openCredsModal() {
@@ -3090,21 +3102,14 @@
   }
 
   async function apiRequest(url, body) {
-    const auth = getAuth();
-    if (!auth) throw new Error('No auth');
     const resp = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + auth,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     const data = await resp.json().catch(() => ({}));
-    if (resp.status === 401) {
-      clearAuth();
-      throw new Error('AUTH_FAILED');
-    }
+    if (resp.status === 401) throw new Error('AUTH_FAILED');
+    if (resp.status === 403) throw new Error('Tu PIN puede ver, pero no ejecutar ni apagar crons.');
     if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
     return data;
   }
@@ -3132,7 +3137,7 @@
         setTimeout(loadWorkflows, 800);
       } catch (err) {
         if (err.message === 'AUTH_FAILED') {
-          showToast('Credenciales inválidas', 'Volvé a ingresar email y clave.', true);
+          showToast('PIN no válido', 'Vuelve a ingresar tu PIN.', true);
           if (el) el.classList.remove('is-loading');
           ensureAuth(() => toggleWorkflow(workflowId, name, currentState));
         } else {
@@ -3171,7 +3176,7 @@
         }
       } catch (err) {
         if (err.message === 'AUTH_FAILED') {
-          showToast('Credenciales inválidas', 'Volvé a ingresar email y clave.', true);
+          showToast('PIN no válido', 'Vuelve a ingresar tu PIN.', true);
           btn.disabled = false;
           confirmText.innerHTML = `${ICON.play} Ejecutar`;
           ensureAuth(doTrigger);
@@ -3204,16 +3209,23 @@
       document.getElementById('tab-workflows').classList.remove('active');
     }
   }
-  function submitLockPin() {
+  async function submitLockPin() {
     const input = document.getElementById('lock-pin-input');
     const err = document.getElementById('lock-error');
-    if (input.value === WORKFLOWS_PIN) {
+    const pin = input.value.trim();
+    let ok = false;
+    try {
+      const r = await fetch('/api/workflows', { headers: { 'x-pin': pin } });
+      ok = r.ok;
+      if (r.status === 429) err.textContent = 'Demasiados intentos. Espera unos minutos.';
+    } catch (e) {}
+    if (ok) {
+      sessionStorage.setItem(PIN_KEY, pin);
       workflowsUnlocked = true;
-      sessionStorage.setItem('wf_unlocked', '1');
       document.getElementById('lock-gate').classList.remove('open');
-      switchView('workflows');
+      loadDashboard(); loadWorkflows();
     } else {
-      err.textContent = 'Clave incorrecta. Intenta de nuevo.';
+      if (!err.textContent) err.textContent = 'PIN incorrecto o sin acceso. Intenta de nuevo.';
       input.value = '';
       input.classList.add('shake');
       setTimeout(() => { input.classList.remove('shake'); input.focus(); }, 420);
@@ -3238,6 +3250,7 @@
   setInterval(loadWorkflows, 45000);
 
   // ── Init ───────────────────────────────────────────────────────────
+  if (!sessionStorage.getItem(PIN_KEY)) showLockGate();
   loadDashboard();
   setInterval(loadDashboard, 120000);   // refresh dashboard every 2 min
 </script>
@@ -3249,14 +3262,15 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
     <div class="lock-title" id="lock-title">Área restringida</div>
-    <div class="lock-subtitle">Ingresa la clave para acceder a Workflows</div>
+    <div class="lock-subtitle">Ingresa tu PIN personal (el mismo de las apps de BC)</div>
     <input
       type="password"
       id="lock-pin-input"
       class="lock-input"
-      placeholder="••••••"
+      placeholder="••••"
+      inputmode="numeric"
       autocomplete="off"
-      maxlength="30"
+      maxlength="8"
       onkeydown="if(event.key==='Enter')submitLockPin();if(event.key==='Escape')closeLockGate();"
     />
     <div class="lock-error" id="lock-error" aria-live="polite"></div>

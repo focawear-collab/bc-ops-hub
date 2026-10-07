@@ -1,5 +1,5 @@
 // api/workflows.js — Lista workflows + último run de cada uno
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
@@ -61,3 +61,5 @@ async function ghFetch(path, token) {
   if (!resp.ok) throw new Error(`GitHub API ${resp.status}: ${path}`);
   return resp.json();
 }
+
+module.exports = require('./_auth.js').conPin(handler, 'ops.ver');
