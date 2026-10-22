@@ -1,6 +1,7 @@
 // Valida el PIN personal contra bc-usuarios (Supabase: app_login_v2). Lo comparten las apps BC.
 // Devuelve { id, nombre, local, permisos: { 'clave.permiso': alcance } } o null.
 // Quién entra y qué puede hacer se administra en bc-usuarios; acá no hay claves.
+const { leerPase } = require('./_pase'); // pase de BlackChicken APP: vale como PIN hasta que vence la sesión del portal
 const cache = new Map();   // pin+app → persona, 5 min (evita una consulta por cada request)
 const fallos = new Map();  // ip → { n, t }: freno a quien prueba PINs
 const MIN = 60 * 1000;
@@ -13,15 +14,16 @@ async function personaPorPin(app, pin, req) {
   pin = String(pin || '').trim();
   const ip = ipDe(req);
   if (frenado(ip)) { const e = new Error('Demasiados intentos. Espera unos minutos.'); e.status = 429; throw e; }
-  if (!/^\d{4,8}$/.test(pin)) { anotarFallo(ip); return null; }
+  const pase = pin.startsWith('sso1~') ? leerPase(pin, req, 0) : null;
+  if (!pase && !/^\d{4,8}$/.test(pin)) { anotarFallo(ip); return null; }
   const k = app + '|' + pin, c = cache.get(k);
   if (c && Date.now() - c.t < 5 * MIN) return c.p;
   const SB = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_SERVICE_KEY;
   if (!SB || !KEY) { const e = new Error('Acceso no configurado'); e.status = 503; throw e; }
-  const r = await fetch(`${SB}/rest/v1/rpc/app_login_v2`, {
+  const r = await fetch(`${SB}/rest/v1/rpc/${pase ? 'app_login_v2_id' : 'app_login_v2'}`, {
     method: 'POST',
     headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p_app: app, p_pin: pin }),
+    body: JSON.stringify(pase ? { p_app: app, p_person: pase.personId } : { p_app: app, p_pin: pin }),
   });
   if (!r.ok) { const e = new Error('No se pudo validar el PIN'); e.status = 502; throw e; }
   const f = (await r.json())[0];
